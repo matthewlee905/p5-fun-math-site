@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>第 1 節　密碼解碼員</title>
+<link rel="stylesheet" href="../css/common.css">
+<style>
+.wheel-wrap{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:center}
+#wheel{width:min(100%,340px);height:auto;aspect-ratio:1/1;min-height:220px;touch-action:manipulation}
+.legend{flex:1;min-width:240px}
+.pair{display:grid;grid-template-columns:repeat(13,1fr);gap:4px;font-weight:800;text-align:center;font-size:15px}
+.pair div{background:#fff7ed;border-radius:8px;padding:6px 0;line-height:1.3}
+.pair .from{color:#9a3412}
+.pair .to{color:#1d4ed8}
+.shift-box{display:flex;align-items:center;justify-content:center;gap:10px;margin:8px 0}
+.shift-box .n{font-size:40px;font-weight:900;min-width:64px;text-align:center;color:#c2410c}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
+.tab{min-height:48px;padding:8px 14px;border-radius:14px;font-size:17px;font-weight:800;background:#fff;border:3px solid #fed7aa}
+.tab.on{background:#ffedd5;border-color:#fb923c}
+.letters{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.letters button{width:44px;height:44px;min-height:44px;border-radius:10px;font-size:18px;font-weight:900;background:#fff;border:2px solid #e7d3ae}
+.letters button.on{background:#fb923c;color:#fff;border-color:#c2410c}
+.slot-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:10px 0}
+.slot{width:52px;height:58px;border:3px solid #e7d3ae;border-radius:12px;font-size:28px;font-weight:900;text-align:center;text-transform:uppercase;padding:0}
+.slot.ok{border-color:#059669;background:#ecfdf5}
+.slot.bad{border-color:#e11d48;background:#fff1f2}
+.src{font-size:36px;font-weight:900;letter-spacing:.2em;text-align:center;margin:6px 0}
+.slip{background:#fffbeb;border:4px dashed #f59e0b;border-radius:20px;padding:18px;text-align:center}
+.slip .big{font-size:40px;font-weight:900;letter-spacing:.2em;margin:8px 0}
+.pig-grid{display:grid;grid-template-columns:repeat(13,1fr);gap:8px}
+.pig-cell{background:#fff;border:2px solid #e7d3ae;border-radius:10px;padding:6px;text-align:center;font-weight:800}
+.pig-cell svg{width:40px;height:40px;margin:0 auto}
+.warn-han{background:#fff1f2;border:3px solid #fb7185;border-radius:14px;padding:10px 12px;font-size:18px;margin:8px 0}
+.progress{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.progress .p{background:#fff;border-radius:999px;padding:8px 12px;font-weight:800;border:2px solid #e7d3ae}
+.progress .p.done{background:#d1fae5;border-color:#059669}
+</style>
+</head>
+<body>
+<noscript><div class="noscript">請用 Safari 打開這個檔案（不要只在對話預覽裡觀看）。本遊戲需要瀏覽器執行。</div></noscript>
+<div class="app">
+  <div class="topbar">
+    <a class="back" href="../index.html">← 返回總覽</a>
+    <div class="brand"><h1><span class="lesson">第 1 節</span>密碼解碼員</h1></div>
+  </div>
+  <div class="mission">
+    <div class="lab">任務目的</div>
+    <p>明白什麼是加密、什麼是解密；用同一把鑰匙（移位格數）親手把明文變成密文，再把密文還原成明文。</p>
+  </div>
+
+  <div class="levels" id="levels">
+    <button class="lv on" data-l="support">🌱 支援（鑰匙 +3、短詞）</button>
+    <button class="lv" data-l="basic">⭐ 基本（加密＋解密）</button>
+    <button class="lv" data-l="challenge">🔥 挑戰（較長詞／未知鑰匙）</button>
+  </div>
+  <div class="progress">
+    <span class="p" id="doneEnc">加密一次：尚未完成</span>
+    <span class="p" id="doneDec">解密一次：尚未完成</span>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+  <div id="main"></div>
+
+  <div class="panel">
+    <h3>想一想</h3>
+    <p class="msg" id="reflectMsg">做完加密和解密後，試用自己的話說：加密是____；解密是____。鑰匙為什麼要相同？</p>
+    <div class="btn-row">
+      <button class="btn btn-yellow" id="reflectBtn">✏️ 寫一句反思</button>
+    </div>
+    <div id="reflectOut" class="msg hidden" style="margin-top:8px"></div>
+  </div>
+
+  <footer class="teacher-entry"><button class="tbtn" id="teacherBtn">老師說明</button></footer>
+</div>
+<div class="overlay hidden" id="ov"><div class="card" id="ovCard"></div></div>
+<script src="../js/common.js"></script>
+<script>
+const ALPHA="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const state={level:"support",shift:3,mode:"wheel",doneEnc:false,doneDec:false,pick:-1,slots:[],secret:"",showAns:false};
+const WORDS={
+  support:["CAT","DOG","SUN","MAP","HAT","BUS","PEN","RED","BOOK","FISH"],
+  basic:["HELLO","APPLE","MATH","WATER","HOUSE","SMILE","CLOUD","BREAD"],
+  challenge:["GOODLUCK","WELLDONE","TRYAGAIN","MATHISFUN","PLAYFAIR"]
+};
+const TEACHER_SECRET={cipher:"ZHOFRPH",shift:3,plain:"WELCOME"}; // 全班密語彩蛋，無個人資料
+
+function hasHan(s){return /[\u3400-\u9FFF]/.test(s);}
+function onlyAZ(s){return (s||"").toUpperCase().replace(/[^A-Z]/g,"");}
+function caesar(text,shift,decode){
+  const n=((Number(shift)||0)%26+26)%26;
+  const k=decode?(26-n)%26:n;
+  let out="",hadHan=hasHan(text),skipped=false;
+  for(const raw of text){
+    const ch=raw.toUpperCase();
+    if(ch>="A"&&ch<="Z") out+=String.fromCharCode((ch.charCodeAt(0)-65+k)%26+65);
+    else if(/\s/.test(raw)) skipped=true;
+    else if(!hasHan(raw)) skipped=true;
+  }
+  return {out,hadHan,skipped};
+}
+function hanWarn(){return `<div class="warn-han">凱撒密碼只處理 26 個大寫英文字母（A–Z），<b>不能直接加密漢字</b>。請改用短英文單詞，例如 MATH、HELLO、APPLE。</div>`;}
+
+function renderTabs(){
+  const tabs=[
+    {id:"wheel",n:"轉盤與對照表"},
+    {id:"enc",n:"① 加密練習"},
+    {id:"dec",n:"② 解密練習"},
+    {id:"swap",n:"交換密文"}
+  ];
+  if(state.level==="challenge") tabs.push({id:"unknown",n:"未知鑰匙"},{id:"pigpen",n:"豬圈延伸"});
+  const el=$("tabs");el.innerHTML="";
+  tabs.forEach(t=>{
+    const b=document.createElement("button");b.className="tab"+(state.mode===t.id?" on":"");b.textContent=t.n;
+    b.onclick=()=>{state.mode=t.id;state.showAns=false;render();};el.appendChild(b);
+  });
+  if(!tabs.some(t=>t.id===state.mode)) state.mode="wheel";
+}
+
+function shiftButtons(lock){
+  const can=!(lock&&state.level==="support");
+  return `<div class="shift-box">
+    <button class="btn" id="shMinus" ${can?"":"disabled"}>−</button>
+    <div>鑰匙 <span class="n" id="shN">+${state.shift}</span></div>
+    <button class="btn" id="shPlus" ${can?"":"disabled"}>+</button>
+  </div>`;
+}
+function bindShift(){
+  const set=d=>{state.shift=Math.max(1,Math.min(25,state.shift+d));render();};
+  if($("shMinus"))$("shMinus").onclick=()=>set(-1);
+  if($("shPlus"))$("shPlus").onclick=()=>set(1);
+}
+
+function drawWheel(){
+  const s=state.shift,cx=160,cy=160,Ro=140,Ri=95;
+  let svg=`<svg id="wheel" viewBox="0 0 320 320" width="320" height="320" xmlns="http://www.w3.org/2000/svg" aria-label="凱撒轉盤">
+    <circle cx="${cx}" cy="${cy}" r="150" fill="#fff7ed" stroke="#fb923c" stroke-width="4"/>
+    <circle cx="${cx}" cy="${cy}" r="112" fill="#e0f2fe" stroke="#0284c7" stroke-width="3"/>
+    <circle cx="${cx}" cy="${cy}" r="62" fill="#fff"/>
+    <text x="${cx}" y="${cy-6}" text-anchor="middle" font-size="18" font-weight="800" fill="#c2410c">鑰匙</text>
+    <text x="${cx}" y="${cy+22}" text-anchor="middle" font-size="28" font-weight="900" fill="#c2410c">+${s}</text>`;
+  for(let i=0;i<26;i++){
+    const a=(i/26)*Math.PI*2-Math.PI/2;
+    const x1=cx+Math.cos(a)*Ro,y1=cy+Math.sin(a)*Ro;
+    const x2=cx+Math.cos(a)*Ri,y2=cy+Math.sin(a)*Ri;
+    svg+=`<text x="${x1}" y="${y1+6}" text-anchor="middle" font-size="15" font-weight="800" fill="#9a3412">${ALPHA[i]}</text>`;
+    const j=(i+s)%26;
+    svg+=`<text x="${x2}" y="${y2+6}" text-anchor="middle" font-size="15" font-weight="800" fill="#075985">${ALPHA[j]}</text>`;
+  }
+  svg+=`<text x="${cx}" y="18" text-anchor="middle" font-size="12" fill="#9a3412">外圈＝明文</text>`;
+  svg+=`</svg>`;
+  return svg;
+}
+function tableHtml(){
+  const s=state.shift;
+  let h='<div class="pair">';
+  for(let i=0;i<26;i++){
+    h+=`<div><span class="from">${ALPHA[i]}</span><br>↓<br><span class="to">${ALPHA[(i+s)%26]}</span></div>`;
+  }
+  return h+"</div><p style='margin:8px 0 0;color:#4b5563'>外圈／上一行是明文，下一行是密文。解密時反向找：看到密文，找回上面的明文。</p>";
+}
+
+function letterPad(target){
+  let h='<div class="letters">';
+  for(const ch of ALPHA){
+    h+=`<button type="button" data-ch="${ch}">${ch}</button>`;
+  }
+  h+=`<button type="button" data-ch="⌫">⌫</button></div>`;
+  return h;
+}
+
+function practiceView(kind){
+  const isEnc=kind==="enc";
+  const title=isEnc?"① 先自己想，再核對加密":"② 先自己想，再核對解密";
+  const srcLabel=isEnc?"明文":"密文";
+  const dstLabel=isEnc?"你寫出的密文":"你寫出的明文";
+  const src=state.secret;
+  const slots=src.split("").map((ch,i)=>`<input class="slot" maxlength="1" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" data-i="${i}" value="${state.slots[i]||""}" aria-label="${dstLabel}第${i+1}個字母">`).join("");
+  return `<div class="panel">
+    <h2>${title}</h2>
+    <p>請先用紙筆或轉盤想一想，把答案填進空格，再按「核對」。不要還未想就看答案。</p>
+    ${state.level==="support"||true?shiftButtons(isEnc||state.level!=="challenge"):""}
+    <div class="lab">${srcLabel}</div>
+    <div class="src">${src.split("").join(" ")}</div>
+    <div class="lab">${dstLabel}</div>
+    <div class="slot-row" id="slots">${slots}</div>
+    ${letterPad()}
+    <div class="btn-row">
+      <button class="btn btn-primary" id="checkBtn">✅ 核對</button>
+      <button class="btn" id="nextBtn">換一詞</button>
+      <button class="btn btn-ghost" id="customBtn">用我們自己的詞</button>
+    </div>
+    <div class="msg" id="fb">填好空格後按「核對」。本節會略過空格，只處理 A–Z。</div>
+  </div>
+  <div class="panel"><h3>需要時可看轉盤</h3><div class="wheel-wrap">${drawWheel()}<div class="legend">${tableHtml()}</div></div></div>`;
+}
+
+function renderWheel(){
+  return `<div class="panel">
+    <h2>轉盤與對照表</h2>
+    <p>旋轉鑰匙（移位格數），看每個明文字母會變成哪個密文。支援層建議先固定 <b>+3</b>。</p>
+    ${shiftButtons(false)}
+    <div class="wheel-wrap">${drawWheel()}<div class="legend">${tableHtml()}</div></div>
+    <p class="msg">例如鑰匙 +3：A→D、B→E、X→A（到了 Z 會循環回 A）。加密是明文→密文；解密用同一把鑰匙，反向找回明文。</p>
+  </div>`;
+}
+
+function renderSwap(){
+  return `<div class="panel" id="swapBox">
+    <h2>交換密文（二人一機）</h2>
+    <p>同學 A 先加密一個短英文單詞（不要用真實姓名或班號），核對後把密文和鑰匙交給同學 B 解密。</p>
+    <div id="swapStep"></div>
+  </div>`;
+}
+
+let swap={phase:1,plain:"",cipher:"",shift:3,guess:""};
+
+function renderSwapStep(){
+  const box=$("swapStep"); if(!box) return;
+  if(swap.phase===1){
+    box.innerHTML=`${hanBox()}
+      <label class="lab">同學 A：輸入明文（短英文單詞）</label>
+      <input id="swapPlain" type="text" maxlength="16" placeholder="例如 APPLE" autocomplete="off" spellcheck="false">
+      ${shiftButtons(false)}
+      <label class="lab">先自己寫出密文，再核對</label>
+      <input id="swapCipher" type="text" maxlength="16" placeholder="你的密文" autocomplete="off" spellcheck="false" style="text-transform:uppercase">
+      <div class="btn-row">
+        <button class="btn btn-primary" id="swapCheck">✅ 核對加密</button>
+      </div>
+      <div class="msg" id="swapFb">寫好後按核對。對了就可以把 iPad 轉給同學 B。</div>`;
+    if($("shMinus"))$("shMinus").onclick=()=>{state.shift=Math.max(1,state.shift-1);const v=$("swapPlain")&&$("swapPlain").value;const c=$("swapCipher")&&$("swapCipher").value;render();swap.plain=v;if($("swapPlain"))$("swapPlain").value=v;if($("swapCipher"))$("swapCipher").value=c;renderSwapStep();};
+    if($("shPlus"))$("shPlus").onclick=()=>{state.shift=Math.min(25,state.shift+1);const v=$("swapPlain")&&$("swapPlain").value;const c=$("swapCipher")&&$("swapCipher").value;render();if($("swapPlain"))$("swapPlain").value=v;if($("swapCipher"))$("swapCipher").value=c;renderSwapStep();};
+    $("swapCheck").onclick=()=>{
+      const p=onlyAZ($("swapPlain").value);
+      const g=onlyAZ($("swapCipher").value);
+      if(hasHan($("swapPlain").value)){$("swapFb").className="msg warn";$("swapFb").textContent="不能直接加密漢字，請改用英文單詞。";return;}
+      if(p.length<2){$("swapFb").className="msg warn";$("swapFb").textContent="請輸入至少 2 個英文字母。";return;}
+      const right=caesar(p,state.shift,false).out;
+      if(g!==right){$("swapFb").className="msg warn";$("swapFb").textContent="還未相符。再看轉盤，逐個字母試一次。暫時不顯示完整答案。";return;}
+      swap.plain=p;swap.cipher=right;swap.shift=state.shift;swap.phase=2;state.doneEnc=true;updateProgress();renderSwapStep();
+    };
+  }else if(swap.phase===2){
+    box.innerHTML=`<div class="slip">
+      <p>把這張「紙條」交給同學 B（同學 A 不要提示明文）</p>
+      <div>密文</div><div class="big">${swap.cipher.split("").join(" ")}</div>
+      <div>鑰匙　<b>+${swap.shift}</b></div>
+    </div>
+    <div class="btn-row"><button class="btn btn-blue" id="toDec">同學 B 開始解密</button></div>`;
+    $("toDec").onclick=()=>{swap.phase=3;renderSwapStep();};
+  }else if(swap.phase===3){
+    box.innerHTML=`<div class="slip"><div>密文</div><div class="big">${swap.cipher.split("").join(" ")}</div><div>鑰匙　<b>+${swap.shift}</b></div></div>
+      <label class="lab">同學 B：寫出明文</label>
+      <input id="swapGuess" type="text" maxlength="16" placeholder="你還原的明文" autocomplete="off" spellcheck="false" style="text-transform:uppercase">
+      <div class="btn-row"><button class="btn btn-primary" id="swapDec">✅ 核對解密</button></div>
+      <div class="msg" id="swapFb">用同一把鑰匙反向找回明文。</div>`;
+    $("swapDec").onclick=()=>{
+      const g=onlyAZ($("swapGuess").value);
+      if(g!==swap.plain){$("swapFb").className="msg warn";$("swapFb").textContent="還未相符。記住：解密要反向移位，到了 A 要循環回 Z。";return;}
+      swap.phase=4;state.doneDec=true;updateProgress();renderSwapStep();
+    };
+  }else{
+    box.innerHTML=`<div class="msg ok">太好了！密文 ${swap.cipher}、鑰匙 +${swap.shift}，還原得到 ${swap.plain}。你們完成了一次加密、一次解密。</div>
+      <div class="btn-row"><button class="btn btn-green" id="swapAgain">互換角色再來一次</button></div>`;
+    $("swapAgain").onclick=()=>{swap={phase:1,plain:"",cipher:"",shift:state.shift,guess:""};renderSwapStep();};
+  }
+}
+
+function hanBox(){return `<div id="hanNote"></div>`;}
+
+function renderUnknown(){
+  const c=state.secret;
+  return `<div class="panel">
+    <h2>未知鑰匙（自己一把一把試）</h2>
+    <p>這裡<b>不會</b>一次試遍 25 種移位。請自己改鑰匙，看看還原後像不像一個英文單詞。</p>
+    <div class="src">密文：${c.split("").join(" ")}</div>
+    ${shiftButtons(false)}
+    <label class="lab">你用這把鑰匙還原得到</label>
+    <div class="src" id="tryOut">${caesar(c,state.shift,true).out.split("").join(" ")}</div>
+    <p class="msg hint">這只是「用這把鑰匙會得到什麼」。像不像單詞，要你自己判斷。一次只改 1 格。</p>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="guessKey">我認為鑰匙就是 +${state.shift}</button>
+      <button class="btn" id="nextUnk">換一條密文</button>
+    </div>
+    <div class="msg" id="fb">想好了再按確認。</div>
+  </div>`;
+}
+
+/* 豬圈：井字格＋X 形，僅作延伸 */
+function pigPath(ch){
+  const i=ALPHA.indexOf(ch);
+  const cell=i<9?i:i<18?i-9:null;
+  const dotted=i>=9&&i<18;
+  const xI=i>=18?i-18:null; // 0-7 : S-Z , first 4 no dot, next 4 dotted
+  let d="";
+  if(cell!==null){
+    const r=Math.floor(cell/3),c=cell%3;
+    // 井字格：角落只有兩條邊，中央有四條邊
+    const has={l:c!==0,r:c!==2,t:r!==0,b:r!==2};
+    const x1=8,y1=8,x2=32,y2=32;
+    if(has.l) d+=`M${x1} ${y1}V${y2}`;
+    if(has.r) d+=`M${x2} ${y1}V${y2}`;
+    if(has.t) d+=`M${x1} ${y1}H${x2}`;
+    if(has.b) d+=`M${x1} ${y2}H${x2}`;
+    const dot=dotted?`<circle cx="20" cy="20" r="2.6" fill="#1f2937"/>`:"";
+    return `<svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><path d="${d}" fill="none" stroke="#1f2937" stroke-width="2.4" stroke-linecap="square"/>${dot}</svg>`;
+  }
+  // X wedges: 0 top, 1 right, 2 bottom, 3 left, then +4 with dots
+  const k=xI%4, dottedX=xI>=4;
+  const mid=20;
+  let path="";
+  if(k===0) path="M8 16 L20 8 L32 16"; // top
+  if(k===1) path="M24 8 L32 20 L24 32"; // right
+  if(k===2) path="M8 24 L20 32 L32 24"; // bottom
+  if(k===3) path="M16 8 L8 20 L16 32"; // left
+  const dot=dottedX?`<circle cx="20" cy="20" r="2.6" fill="#1f2937"/>`:"";
+  return `<svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><path d="${path}" fill="none" stroke="#1f2937" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>${dot}</svg>`;
+}
+function renderPigpen(){
+  let grid='<div class="pig-grid">';
+  for(const ch of ALPHA){
+    grid+=`<div class="pig-cell">${pigPath(ch)}<div>${ch}</div></div>`;
+  }
+  grid+="</div>";
+  return `<div class="panel">
+    <h2>豬圈密碼（可選延伸）</h2>
+    <p>這不是本節主活動。主活動仍是凱撒的加密與解密。若還有 2–3 分鐘，可以用這張對照表解一個小詞，例如 <b>HI</b>。</p>
+    ${grid}
+    <label class="lab" style="margin-top:12px">試把符號還原成字母（只寫大寫英文）</label>
+    <div style="display:flex;gap:12px;align-items:center;justify-content:center;margin:8px 0">${pigPath("H")}${pigPath("I")}</div>
+    <input id="pigGuess" type="text" maxlength="8" placeholder="例如 HI" autocomplete="off" spellcheck="false" style="text-transform:uppercase">
+    <div class="btn-row"><button class="btn btn-primary" id="pigCheck">核對</button></div>
+    <div class="msg" id="fb">先對照表，再填答案。</div>
+  </div>`;
+}
+
+function pickWord(){
+  const list=WORDS[state.level]||WORDS.basic;
+  let w=list[Math.floor(Math.random()*list.length)];
+  if(state.mode==="dec"){
+    const sh=state.level==="support"?3:state.shift;
+    state.shift=sh;
+    state.secret=caesar(w,sh,false).out;
+    state._plain=w;
+  }else if(state.mode==="unknown"){
+    const sh=1+Math.floor(Math.random()*8); // 1-9, student tries manually
+    if(sh===7&&Math.random()<0.5) {/* still allowed, just not default tool shift */}
+    state._plain=w;state._trueShift=sh;state.secret=caesar(w,sh,false).out;state.shift=1;
+  }else{
+    if(state.level==="support") state.shift=3;
+    state.secret=w;state._plain=w;
+  }
+  state.slots=Array(state.secret.length).fill("");
+  state.pick=0;
+}
+
+function expected(){
+  if(state.mode==="enc") return caesar(state.secret,state.shift,false).out;
+  if(state.mode==="dec") return state._plain;
+  return "";
+}
+
+function bindPractice(){
+  bindShift();
+  const inputs=[...document.querySelectorAll(".slot")];
+  const focus=i=>{if(inputs[i]) inputs[i].focus();};
+  inputs.forEach((inp,i)=>{
+    inp.addEventListener("input",()=>{
+      let v=inp.value.toUpperCase().replace(/[^A-Z]/g,"");
+      if(hasHan(inp.value)){inp.value="";$("fb").className="msg warn";$("fb").innerHTML="不能填漢字，請填英文字母。";return;}
+      inp.value=v.slice(0,1);state.slots[i]=inp.value;inp.classList.remove("ok","bad");
+      if(inp.value&&i+1<inputs.length) focus(i+1);
+    });
+    inp.addEventListener("focus",()=>state.pick=i);
+    inp.addEventListener("keydown",e=>{if(e.key==="Backspace"&&!inp.value&&i>0){focus(i-1);e.preventDefault();}});
+  });
+  document.querySelectorAll(".letters button").forEach(b=>b.onclick=()=>{
+    const ch=b.dataset.ch;
+    if(!inputs.length) return;
+    if(state.pick<0||state.pick>=inputs.length) state.pick=0;
+    if(ch==="⌫"){
+      inputs[state.pick].value="";state.slots[state.pick]="";
+      if(state.pick>0) state.pick--;
+      focus(state.pick);return;
+    }
+    inputs[state.pick].value=ch;state.slots[state.pick]=ch;inputs[state.pick].classList.remove("ok","bad");
+    if(state.pick<inputs.length-1) state.pick++;
+    focus(state.pick);
+  });
+  $("checkBtn").onclick=()=>{
+    const got=state.slots.join("");
+    const right=expected();
+    if(got.length!==right.length||state.slots.some(s=>!s)){$("fb").className="msg warn";$("fb").textContent="請把每個空格都填上一個英文字母，再核對。";return;}
+    let ok=true;
+    inputs.forEach((inp,i)=>{
+      if(state.slots[i]===right[i]) inp.classList.add("ok");
+      else{inp.classList.add("bad");ok=false;}
+    });
+    if(ok){
+      $("fb").className="msg ok";
+      $("fb").textContent=state.mode==="enc"?`對了！明文 ${state.secret}、鑰匙 +${state.shift}，密文是 ${right}。這一步叫做加密。`:`對了！密文 ${state.secret}、鑰匙 +${state.shift}，明文是 ${right}。這一步叫做解密。`;
+      if(state.mode==="enc") state.doneEnc=true; else state.doneDec=true;
+      updateProgress();
+    }else{
+      $("fb").className="msg warn";
+      $("fb").textContent="有字母還未對。看看標了紅色的格子，再用轉盤或對照表想一次。暫時不公布完整答案。";
+    }
+  };
+  $("nextBtn").onclick=()=>{pickWord();render();};
+  $("customBtn").onclick=()=>{
+    openCard(`<h2>用我們自己的詞</h2>
+      <p>只可用大寫英文字母，不要用真實姓名、電話或班號。</p>
+      ${hanWarn()}
+      <input id="customW" type="text" maxlength="16" placeholder="例如 HELLO" autocomplete="off" spellcheck="false">
+      <div class="btn-row"><button class="btn btn-primary" id="okC">使用這個詞</button>
+      <button class="btn" id="cancelC">取消</button></div>`);
+    $("okC").onclick=()=>{
+      const raw=$("customW").value;
+      if(hasHan(raw)){return;}
+      const w=onlyAZ(raw);
+      if(w.length<2||w.length>16){return;}
+      if(state.mode==="dec"){state._plain=w;state.secret=caesar(w,state.shift,false).out;}
+      else{state.secret=w;state._plain=w;}
+      state.slots=Array(state.secret.length).fill("");closeCard();render();
+    };
+    $("cancelC").onclick=closeCard;
+  };
+}
+
+function updateProgress(){
+  const a=$("doneEnc"),b=$("doneDec");
+  a.textContent=state.doneEnc?"加密一次：已完成 ✓":"加密一次：尚未完成";
+  b.textContent=state.doneDec?"解密一次：已完成 ✓":"解密一次：尚未完成";
+  a.classList.toggle("done",state.doneEnc);b.classList.toggle("done",state.doneDec);
+}
+
+function render(){
+  if(state.level==="support") state.shift=3;
+  renderTabs();
+  const main=$("main");
+  if(state.mode==="wheel"){main.innerHTML=renderWheel();bindShift();}
+  else if(state.mode==="enc"||state.mode==="dec"){
+    if(!state.secret) pickWord();
+    if(state.mode==="enc"&&state.secret!==state._plain) pickWord();
+    if((state.secret||"").length!==(state.slots||[]).length) state.slots=Array(state.secret.length).fill("");
+    main.innerHTML=practiceView(state.mode);bindPractice();
+  }else if(state.mode==="swap"){main.innerHTML=renderSwap();renderSwapStep();}
+  else if(state.mode==="unknown"){
+    if(!state._trueShift) pickWord();
+    main.innerHTML=renderUnknown();bindShift();
+    if($("shMinus")){$("shMinus").onclick=()=>{state.shift=Math.max(1,state.shift-1);render();};}
+    if($("shPlus")){$("shPlus").onclick=()=>{state.shift=Math.min(25,state.shift+1);render();};}
+    $("guessKey").onclick=()=>{
+      if(state.shift===state._trueShift){
+        $("fb").className="msg ok";$("fb").textContent=`對了！鑰匙是 +${state._trueShift}，明文是 ${state._plain}。你是自己一把一把試出來的。`;
+        state.doneDec=true;updateProgress();
+      }else{
+        $("fb").className="msg warn";$("fb").textContent="這把鑰匙還原出來的不太像這次的單詞。改一把再試，不要一次試完所有鑰匙。";
+      }
+    };
+    $("nextUnk").onclick=()=>{pickWord();render();};
+  }else if(state.mode==="pigpen"){
+    main.innerHTML=renderPigpen();
+    $("pigCheck").onclick=()=>{
+      const g=onlyAZ($("pigGuess").value);
+      if(g==="HI"){$("fb").className="msg ok";$("fb").textContent="對了！這就是豬圈密碼的寫法。回到凱撒，才是本節重點。";}
+      else{$("fb").className="msg warn";$("fb").textContent="再對照一次表。上面兩個符號分別是哪個字母？";}
+    };
+  }
+  updateProgress();
+}
+
+function openTeacher(){
+  openCard(`<div class="teacher"><h2>老師說明　第 1 節</h2>
+  <h3>學習目標</h3>
+  <ul><li>能說出：加密＝按約定規則把明文變成密文；解密＝用同一把鑰匙還原。</li>
+  <li>每對都要親手做一次加密、一次解密（可用「交換密文」）。</li>
+  <li>只處理 26 個大寫拉丁字母；不可直接加密漢字。</li></ul>
+  <h3>分層</h3>
+  <ul><li>支援：鎖鑰匙 +3，詞長約 3–4，對照表常駐。</li>
+  <li>基本：獨立加密一詞、解密一詞或交換密文。</li>
+  <li>挑戰：較長詞；或「未知鑰匙」——學生自行改移位，<b>沒有「試遍 25 種」按鈕</b>。豬圈只作延伸。</li></ul>
+  <h3>設計取捨</h3>
+  <p>練習模式不會一邊打字一邊自動跳答案，必須先填再核對。核對錯誤時只標出個別字母，不一次公布整詞。</p>
+  <h3>建議教法</h3>
+  <p>先用轉盤示範 CAT、+3 → FDW，再還原。iPad 建議橫向。約第 22 分鐘互換角色。</p>
+  <h3>全班密語彩蛋（學生頁看不到）</h3>
+  <p>明文 WELCOME，鑰匙 +3，密文 <b>${caesar("WELCOME",3,false).out}</b>。</p>
+  <h3>核對用詞庫</h3>
+  <p>支援：${WORDS.support.join("、")}。基本：${WORDS.basic.join("、")}。挑戰：${WORDS.challenge.join("、")}。</p>
+  <div class="row btn-row"><button class="btn big" id="tClose">關閉</button></div></div>`);
+  $("tClose").onclick=closeCard;
+}
+
+document.querySelectorAll(".lv").forEach(b=>b.onclick=()=>{
+  state.level=b.dataset.l;
+  document.querySelectorAll(".lv").forEach(x=>x.classList.toggle("on",x===b));
+  if(state.level==="support") state.shift=3;
+  if(state.mode==="unknown"||state.mode==="pigpen"){if(state.level!=="challenge") state.mode="enc";}
+  pickWord();render();
+});
+$("teacherBtn").onclick=openTeacher;
+$("reflectBtn").onclick=()=>{
+  openCard(`<h2>我原本以為……</h2>
+    <label class="lab">我原本以為</label><input id="r1" type="text" maxlength="80" autocomplete="off">
+    <label class="lab">現在發現</label><input id="r2" type="text" maxlength="80" autocomplete="off">
+    <label class="lab">因為</label><input id="r3" type="text" maxlength="80" autocomplete="off">
+    <p>寫在學習單也可以。這裡只留在這部 iPad，不會上傳。</p>
+    <div class="btn-row"><button class="btn btn-primary" id="rOk">完成</button><button class="btn" id="rNo">取消</button></div>`);
+  $("rOk").onclick=()=>{
+    const a=$("r1").value.trim(),b=$("r2").value.trim(),c=$("r3").value.trim();
+    $("reflectOut").classList.remove("hidden");
+    $("reflectOut").textContent=`我原本以為${a}，現在發現${b}，因為${c}。`;
+    closeCard();
+  };
+  $("rNo").onclick=closeCard;
+};
+pickWord();render();
+if(isTeacherMode()) openTeacher();
+
+/* 內部自測（僅主控台） */
+(function selfTest(){
+  const t=[
+    ["CAT",3,false,"FDW"],
+    ["FDW",3,true,"CAT"],
+    ["XYZ",3,false,"ABC"],
+    ["ABC",3,true,"XYZ"],
+    ["HELLO",1,false,"IFMMP"],
+    ["WELCOME",3,false,"ZHOFRPH"]
+  ];
+  const bad=t.filter(([s,k,d,e])=>caesar(s,k,d).out!==e);
+  if(bad.length) console.error("凱撒自測失敗",bad); else console.log("凱撒自測全部通過",t.length);
+})();
+</script>
+</body>
+</html>

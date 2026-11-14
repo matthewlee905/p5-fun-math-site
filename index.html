@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<title>小五趣味數學｜六節總覽</title>
+<link rel="stylesheet" href="css/common.css">
+<style>
+body{background:
+  radial-gradient(circle at 8% 10%,#ffe8a3 0 80px,transparent 81px),
+  radial-gradient(circle at 92% 0%,#ffd0e3 0 120px,transparent 121px),
+  radial-gradient(circle at 100% 80%,#c8f0ff 0 140px,transparent 141px),
+  radial-gradient(circle at 0% 80%,#d9f99d 0 100px,transparent 101px),
+  var(--bg)}
+.hero{text-align:center;padding:18px 8px 8px}
+.hero h1{margin:0;font-size:36px;letter-spacing:1px}
+.hero p{margin:8px auto 0;max-width:720px;font-size:20px;line-height:1.55;color:var(--muted)}
+.dots{display:flex;gap:8px;justify-content:center;margin:12px 0 4px}
+.dots i{width:14px;height:14px;border-radius:50%;display:block}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:12px}
+@media (max-width:720px){.grid{grid-template-columns:1fr}.hero h1{font-size:30px}}
+.gc{display:flex;flex-direction:column;background:#fff;border-radius:24px;padding:16px 16px 14px;box-shadow:var(--shadow);border-top:10px solid #fb923c;min-height:230px;text-decoration:none;color:inherit}
+.gc:active{transform:translateY(2px)}
+.gc .num{font-weight:900;font-size:15px;letter-spacing:1px}
+.gc h2{margin:4px 0 8px;font-size:26px}
+.gc .goal{flex:1;font-size:17px;line-height:1.5;color:#374151;margin:0 0 12px}
+.gc .go{min-height:52px;border-radius:16px;font-size:20px;font-weight:800;display:flex;align-items:center;justify-content:center;background:#fff7ed}
+.gc.s1{border-color:#fb923c}.gc.s1 .num{color:#c2410c}.gc.s1 .go{background:#ffedd5;color:#9a3412}
+.gc.s2{border-color:#60a5fa}.gc.s2 .num{color:#1d4ed8}.gc.s2 .go{background:#dbeafe;color:#1e3a8a}
+.gc.s3{border-color:#34d399}.gc.s3 .num{color:#047857}.gc.s3 .go{background:#d1fae5;color:#065f46}
+.gc.s4{border-color:#c084fc}.gc.s4 .num{color:#6d28d9}.gc.s4 .go{background:#f3e8ff;color:#5b21b6}
+.gc.s5{border-color:#f472b6}.gc.s5 .num{color:#be185d}.gc.s5 .go{background:#fce7f3;color:#9d174d}
+.gc.s6{border-color:#fbbf24}.gc.s6 .num{color:#b45309}.gc.s6 .go{background:#fef3c7;color:#92400e}
+.ico{font-size:36px;line-height:1;margin-bottom:2px}
+.notes{margin-top:18px;background:#fff;border-radius:20px;padding:14px 16px;box-shadow:var(--shadow)}
+.notes h2{margin:0 0 8px;font-size:20px}
+.notes ul{margin:0;padding-left:1.2em;font-size:16px;line-height:1.6;color:#374151}
+.notes li{margin:4px 0}
+</style>
+</head>
+<body>
+<noscript><div class="noscript">請用 Safari 打開這個檔案（不要只在對話預覽裡觀看）。本網站需要瀏覽器執行，才能進入遊戲。</div></noscript>
+<div class="app">
+  <header class="hero">
+    <div class="dots">
+      <i style="background:#fb923c"></i><i style="background:#60a5fa"></i><i style="background:#34d399"></i>
+      <i style="background:#c084fc"></i><i style="background:#f472b6"></i><i style="background:#fbbf24"></i>
+    </div>
+    <h1>小五趣味數學</h1>
+    <p>六節遊戲，二人一機，先想再做。不用登入，也不用上網（用本機檔案就能玩）。</p>
+  </header>
+
+  <div class="grid">
+    <a class="gc s1" href="01-cipher/index.html">
+      <div class="ico" aria-hidden="true">🔐</div>
+      <div class="num">第 1 節</div>
+      <h2>密碼解碼員</h2>
+      <p class="goal">明白什麼是加密、什麼是解密；用同一把鑰匙親手把明文變成密文，再把密文還原成明文。</p>
+      <div class="go">開始遊戲 →</div>
+    </a>
+    <a class="gc s2" href="02-knights/index.html">
+      <div class="ico" aria-hidden="true">🛡️</div>
+      <div class="num">第 2 節</div>
+      <h2>騎士與無賴</h2>
+      <p class="goal">根據陳述判斷誰是騎士（永遠說真話）、誰是無賴（永遠說假話）；先假設再檢查有沒有說不通。</p>
+      <div class="go">開始遊戲 →</div>
+    </a>
+    <a class="gc s3" href="03-1a2b/index.html">
+      <div class="ico" aria-hidden="true">🔢</div>
+      <div class="num">第 3 節</div>
+      <h2>終極密碼</h2>
+      <p class="goal">根據 A（數字與位置都對）和 B（數字對、位置不對）記錄、排除，提出更有用的下一猜。</p>
+      <div class="go">開始遊戲 →</div>
+    </a>
+    <a class="gc s4" href="04-trust/index.html">
+      <div class="ico" aria-hidden="true">🤝</div>
+      <div class="num">第 4 節</div>
+      <h2>信任的進化</h2>
+      <p class="goal">用「分享材料／獨佔」一起選，感受「對自己眼前最好，兩人加起來未必最好」。</p>
+      <div class="go">開始遊戲 →</div>
+    </a>
+    <a class="gc s5" href="05-map-coloring/index.html">
+      <div class="ico" aria-hidden="true">🗺️</div>
+      <div class="num">第 5 節</div>
+      <h2>地圖著色戰線</h2>
+      <p class="goal">相鄰區域（共邊才算，只碰一角不算）必須不同色；發現有些圖三色會卡住，四色就夠。</p>
+      <div class="go">開始遊戲 →</div>
+    </a>
+    <a class="gc s6" href="06-pig/index.html">
+      <div class="ico" aria-hidden="true">🎲</div>
+      <div class="num">第 6 節</div>
+      <h2>豪賭客（Pig 骰子）</h2>
+      <p class="goal">回合中選擇再擲或停手把分數入袋；擲到 1 則本輪歸零。先玩再思考「為什麼有時該停」。</p>
+      <div class="go">開始遊戲 →</div>
+    </a>
+  </div>
+
+  <section class="notes" id="teacherNotes">
+    <h2>給老師的極短備註</h2>
+    <ul>
+      <li>約 20 人、二人一機：一位「操作員」、一位「記錄員」，中途互換。</li>
+      <li>建議方向：第 1、3 節用<strong>橫向</strong>較方便輸入；第 2、4、5、6 節直向或橫向都可以。</li>
+      <li>請用 Safari 打開（iPad 可在「檔案」選這個資料夾，再分享 → 用 Safari 開啟），不要只在預覽畫面觀看。</li>
+      <li>學生介面不收集姓名、班別或電郵。教師核對頁可在各遊戲加 <code>?teacher=1</code>，或按頁尾低調的「老師說明」。</li>
+      <li>每節 50 分鐘。不要把「打完所有關卡」當成目標；留下思考痕跡、能向同學解釋即可。</li>
+    </ul>
+  </section>
+  <footer class="site">校本靜態課件　・　免登入、可離線　・　全繁體中文</footer>
+</div>
+</body>
+</html>

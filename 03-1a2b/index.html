@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>第 3 節　終極密碼</title>
+<link rel="stylesheet" href="../css/common.css">
+<style>
+.pad{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-width:420px;margin:8px auto}
+.pad button{min-height:56px;border-radius:16px;font-size:26px;font-weight:900;background:#fff;border:3px solid #a7f3d0}
+.pad button:disabled{opacity:.35}
+.guess-now{display:flex;gap:10px;justify-content:center;margin:10px 0}
+.gbox{width:58px;height:64px;border:3px solid #6ee7b7;border-radius:14px;font-size:32px;font-weight:900;display:flex;align-items:center;justify-content:center;background:#ecfdf5}
+.hist{width:100%;font-size:20px}
+.hist th{background:#d1fae5}
+.ab{font-weight:900;color:#047857}
+.remain{font-size:22px;font-weight:800;text-align:center;padding:8px}
+.pool{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-height:200px;overflow:auto}
+.pool i{font-style:normal;background:#fff;border:2px solid #d1d5db;border-radius:8px;padding:4px 8px;font-weight:800;font-size:16px}
+.pool i.off{opacity:.3;text-decoration:line-through}
+.settings{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+</style>
+</head>
+<body>
+<noscript><div class="noscript">請用 Safari 打開這個檔案（不要只在對話預覽裡觀看）。本遊戲需要瀏覽器執行。</div></noscript>
+<div class="app">
+  <div class="topbar">
+    <a class="back" href="../index.html">← 返回總覽</a>
+    <div class="brand"><h1><span class="lesson">第 3 節</span>終極密碼（1A2B）</h1></div>
+  </div>
+  <div class="mission">
+    <div class="lab">任務目的</div>
+    <p>根據 A（數字與位置都對）和 B（數字對、位置不對）記錄、排除，提出更有用的下一猜。這節不是用鑰匙變換文字，而是未知密碼、靠提示縮小範圍。</p>
+  </div>
+  <div class="levels">
+    <button class="lv on" data-l="support">🌱 支援（3 位，只用 1–4）</button>
+    <button class="lv" data-l="basic">⭐ 基本（3 位，0–9 不重複）</button>
+    <button class="lv" data-l="challenge">🔥 挑戰（4 位不重複）</button>
+  </div>
+  <div class="panel settings">
+    <label><input type="checkbox" id="showRemain" checked> 顯示剩餘可能數</label>
+    <label id="showPoolLab"><input type="checkbox" id="showPool" checked> 顯示可能組合清單（支援層）</label>
+    <label class="hidden" id="repLab"><input type="checkbox" id="allowRep"> 允許數字重複（挑戰加料）</label>
+    <label class="hidden" id="limLab"><input type="checkbox" id="limit5"> 只准再猜 5 次（自我限制）</label>
+  </div>
+  <div class="panel">
+    <div class="guess-now" id="curGuess"></div>
+    <div class="pad" id="pad"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="submitBtn">提出這一猜</button>
+      <button class="btn" id="backBtn">刪除一位</button>
+      <button class="btn btn-ghost" id="newBtn">開新一局</button>
+    </div>
+    <div class="msg" id="fb">用螢幕數字鍵輸入，再提出猜測。沒有限時，不必趕。</div>
+  </div>
+  <div class="panel">
+    <h2>猜測紀錄</h2>
+    <div class="remain" id="remain"></div>
+    <div class="pool" id="pool"></div>
+    <table class="t hist" id="hist"><thead><tr><th>#</th><th>猜測</th><th>提示</th></tr></thead><tbody></tbody></table>
+  </div>
+  <div class="panel">
+    <h3>活動後想一想</h3>
+    <p class="msg">這一提示刪除了哪些可能？你的下一猜是想確認數字，還是確認位置？</p>
+    <div class="btn-row"><button class="btn btn-yellow" id="reflectBtn">✏️ 寫一句反思</button></div>
+    <div id="reflectOut" class="msg hidden" style="margin-top:8px"></div>
+  </div>
+  <footer class="teacher-entry"><button class="tbtn" id="teacherBtn">老師說明</button></footer>
+</div>
+<div class="overlay hidden" id="ov"><div class="card" id="ovCard"></div></div>
+<script src="../js/common.js"></script>
+<script>
+const state={level:"support",len:3,digits:["1","2","3","4"],unique:true,secret:"",guess:[],hist:[],limit:0,games:0};
+
+function cfgFromLevel(){
+  if(state.level==="support"){state.len=3;state.digits=["1","2","3","4"];state.unique=true;state.limit=0;$("showPoolLab").classList.remove("hidden");$("repLab").classList.add("hidden");$("limLab").classList.add("hidden");$("showPool").checked=true;}
+  else if(state.level==="basic"){state.len=3;state.digits=["0","1","2","3","4","5","6","7","8","9"];state.unique=true;state.limit=0;$("showPoolLab").classList.add("hidden");$("repLab").classList.add("hidden");$("limLab").classList.add("hidden");}
+  else{state.len=4;state.digits=["0","1","2","3","4","5","6","7","8","9"];state.unique=!$("allowRep").checked;state.limit=$("limit5").checked?5:0;$("showPoolLab").classList.add("hidden");$("repLab").classList.remove("hidden");$("limLab").classList.remove("hidden");}
+}
+
+function scoreAB(secret,guess){
+  /* A：同位置同數字；B：數字對但位置不對。先算 A，再從剩餘配對 B。 */
+  const s=secret.split(""),g=String(guess).split("");
+  const usedS=Array(s.length).fill(false),usedG=Array(g.length).fill(false);
+  let A=0,B=0;
+  for(let i=0;i<s.length;i++) if(s[i]===g[i]){A++;usedS[i]=usedG[i]=true;}
+  for(let i=0;i<g.length;i++){
+    if(usedG[i]) continue;
+    for(let j=0;j<s.length;j++){
+      if(usedS[j]) continue;
+      if(g[i]===s[j]){B++;usedS[j]=usedG[i]=true;break;}
+    }
+  }
+  return {A,B};
+}
+
+function allCodes(){
+  const d=state.digits,n=state.len,uniq=state.unique,out=[];
+  const rec=(cur)=>{
+    if(cur.length===n){out.push(cur.join(""));return;}
+    for(const x of d){
+      if(uniq&&cur.indexOf(x)!==-1) continue;
+      rec(cur.concat(x));
+    }
+  };
+  rec([]);return out;
+}
+function remaining(){
+  let pool=allCodes();
+  for(const h of state.hist){
+    pool=pool.filter(c=>{const r=scoreAB(c,h.g);return r.A===h.A&&r.B===h.B;});
+  }
+  return pool;
+}
+function newSecret(){
+  const pool=allCodes();
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function newGame(){
+  cfgFromLevel();
+  state.secret=newSecret();
+  state.guess=[];state.hist=[];
+  renderAll();
+  $("fb").className="msg";
+  $("fb").textContent=`新一局開始：${state.len} 位數字${state.unique?"，不重複":"，可重複"}。沒有限時。學生頁不會公布答案。`;
+}
+
+function renderGuess(){
+  const el=$("curGuess");el.innerHTML="";
+  for(let i=0;i<state.len;i++){
+    const d=document.createElement("div");d.className="gbox";d.textContent=state.guess[i]||"";el.appendChild(d);
+  }
+}
+function renderPad(){
+  const el=$("pad");el.innerHTML="";
+  state.digits.forEach(n=>{
+    const b=document.createElement("button");b.textContent=n;
+    const used=state.unique&&state.guess.indexOf(n)!==-1;
+    b.disabled=used||state.guess.length>=state.len;
+    b.onclick=()=>{if(state.guess.length<state.len){state.guess.push(n);renderAll();}};
+    el.appendChild(b);
+  });
+}
+function renderHist(){
+  const tb=$("hist").querySelector("tbody");tb.innerHTML="";
+  state.hist.forEach((h,i)=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${i+1}</td><td style="letter-spacing:.2em;font-weight:900">${h.g.split("").join(" ")}</td><td class="ab">${h.A}A ${h.B}B</td>`;
+    tb.appendChild(tr);
+  });
+  const rem=remaining();
+  const showR=$("showRemain").checked;
+  $("remain").textContent=showR?`還有 ${rem.length} 種可能`:(state.hist.length?`已猜 ${state.hist.length} 次`:"尚未猜測");
+  const pool=$("pool");pool.innerHTML="";
+  if(state.level==="support"&&$("showPool").checked){
+    const all=allCodes();
+    const set={};rem.forEach(x=>set[x]=1);
+    all.forEach(c=>{
+      const i=document.createElement("i");i.textContent=c;if(!set[c]) i.className="off";pool.appendChild(i);
+    });
+  }
+}
+
+function renderAll(){renderGuess();renderPad();renderHist();}
+
+function submit(){
+  if(state.guess.length!==state.len){$("fb").className="msg warn";$("fb").textContent=`請先輸入完整的 ${state.len} 位數字。`;return;}
+  if(state.limit&&state.hist.length>=state.limit){$("fb").className="msg warn";$("fb").textContent="本局已達到你設定的 5 次限制。可以開新一局，或取消限制再試。";return;}
+  const g=state.guess.join("");
+  const r=scoreAB(state.secret,g);
+  state.hist.push({g,A:r.A,B:r.B});
+  state.guess=[];
+  renderAll();
+  if(r.A===state.len){
+    state.games++;
+    $("fb").className="msg ok";
+    $("fb").textContent=`猜中了！用了 ${state.hist.length} 次。請在學習單寫下：哪一次提示幫你刪除了最多可能？`;
+  }else{
+    $("fb").className="msg";
+    $("fb").textContent=`提示：${r.A}A ${r.B}B。A＝數字與位置都對；B＝數字對、位置不對。看看紀錄，想一想下一猜要弄清楚什麼。`;
+  }
+}
+
+document.querySelectorAll(".lv").forEach(b=>b.onclick=()=>{
+  state.level=b.dataset.l;
+  document.querySelectorAll(".lv").forEach(x=>x.classList.toggle("on",x===b));
+  newGame();
+});
+$("submitBtn").onclick=submit;
+$("backBtn").onclick=()=>{state.guess.pop();renderAll();};
+$("newBtn").onclick=newGame;
+$("showRemain").onchange=renderHist;
+$("showPool").onchange=renderHist;
+$("allowRep").onchange=newGame;
+$("limit5").onchange=()=>{state.limit=$("limit5").checked?5:0;};
+
+$("teacherBtn").onclick=()=>{
+  openCard(`<div class="teacher"><h2>老師說明　第 3 節</h2>
+  <h3>學習目標</h3>
+  <ul><li>分清 A（數字與位置都對）和 B（數字對、位置不對）。</li>
+  <li>留下猜測紀錄，用提示排除，提出更有資訊的下一猜。</li>
+  <li>與第 1 節分開：本節答案未知，不是用已知鑰匙變換文字。</li></ul>
+  <h3>分層</h3>
+  <ul><li>支援：3 位、數字 1–4、不重複（共 24 種），可顯示清單讓學生劃掉。</li>
+  <li>基本：3 位、0–9、不重複。</li>
+  <li>挑戰：4 位不重複；可選允許重複，或自我限制 5 次。</li></ul>
+  <h3>教師核對</h3>
+  <p>本局隱藏密碼：<b style="letter-spacing:.2em">${state.secret.split("").join(" ")}</b>（只有這個老師頁看得到，學生頁沒有「公布答案」按鈕。）剩餘可能：${remaining().length}。</p>
+  <p>建議至少 2 局；不問手速。網址加 <code>?teacher=1</code> 可開此頁。</p>
+  <div class="btn-row"><button class="btn" id="tClose">關閉</button></div></div>`);
+  $("tClose").onclick=closeCard;
+};
+$("reflectBtn").onclick=()=>{
+  openCard(`<h2>我原本以為……</h2>
+    <label class="lab">我原本以為</label><input id="r1" type="text" maxlength="80" autocomplete="off">
+    <label class="lab">現在發現</label><input id="r2" type="text" maxlength="80" autocomplete="off">
+    <label class="lab">因為</label><input id="r3" type="text" maxlength="80" autocomplete="off">
+    <div class="btn-row"><button class="btn btn-primary" id="rOk">完成</button><button class="btn" id="rNo">取消</button></div>`);
+  $("rOk").onclick=()=>{$("reflectOut").classList.remove("hidden");$("reflectOut").textContent=`我原本以為${$("r1").value}，現在發現${$("r2").value}，因為${$("r3").value}。`;closeCard();};
+  $("rNo").onclick=closeCard;
+};
+newGame();
+if(isTeacherMode()) $("teacherBtn").click();
+
+(function selfTest(){
+  const t=[
+    ["123","123",3,0],
+    ["123","321",1,2],  // 中間 2 位置對，是 1A2B 不是 0A3B
+    ["123","145",1,0],
+    ["123","156",1,0],
+    ["123","352",0,2],
+    ["123","213",1,2],
+    ["1123","1132",2,2], // repeats
+    ["1123","1111",2,0],
+    ["1123","2111",1,2]
+  ];
+  // For repeats test, temporarily ignore unique. scoreAB is independent.
+  const bad=t.filter(([s,g,A,B])=>{const r=scoreAB(s,g);return r.A!==A||r.B!==B;});
+  if(bad.length) console.error("1A2B 自測失敗",bad.map(x=>({case:x,got:scoreAB(x[0],x[1])})));
+  else console.log("1A2B 自測全部通過",t.length);
+})();
+</script>
+</body>
+</html>

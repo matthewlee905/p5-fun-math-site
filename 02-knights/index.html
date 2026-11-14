@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>第 2 節　騎士與無賴</title>
+<link rel="stylesheet" href="../css/common.css">
+<style>
+.who{display:grid;gap:12px}
+.person{background:#fff;border:3px solid #bfdbfe;border-radius:20px;padding:14px}
+.person h3{margin:0 0 6px;font-size:24px}
+.said{font-size:22px;font-weight:800;background:#eff6ff;border-radius:14px;padding:12px 14px;margin:8px 0}
+.choices{display:flex;gap:10px;flex-wrap:wrap}
+.choices button{flex:1;min-height:56px;min-width:120px;border-radius:16px;font-size:20px;font-weight:800;border:3px solid #e5e7eb;background:#fff}
+.choices button.on.knight{background:#dbeafe;border-color:#2563eb}
+.choices button.on.knave{background:#ffe4e6;border-color:#e11d48}
+.steps{background:#fffbeb;border-radius:16px;padding:12px;margin:10px 0}
+.steps ol{margin:6px 0 0;padding-left:1.3em;font-size:18px;line-height:1.55}
+.badge{display:inline-block;font-size:14px;font-weight:800;background:#dbeafe;border-radius:999px;padding:3px 10px}
+.done-list{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.done-list span{background:#fff;border-radius:999px;padding:6px 10px;border:2px solid #e7d3ae;font-weight:700}
+.done-list span.ok{background:#d1fae5;border-color:#059669}
+</style>
+</head>
+<body>
+<noscript><div class="noscript">請用 Safari 打開這個檔案（不要只在對話預覽裡觀看）。本遊戲需要瀏覽器執行。</div></noscript>
+<div class="app">
+  <div class="topbar">
+    <a class="back" href="../index.html">← 返回總覽</a>
+    <div class="brand"><h1><span class="lesson">第 2 節</span>騎士與無賴</h1></div>
+  </div>
+  <div class="mission">
+    <div class="lab">任務目的</div>
+    <p>根據陳述判斷誰是騎士（永遠說真話）、誰是無賴（永遠說假話）；先假設再檢查有沒有說不通。</p>
+  </div>
+  <div class="levels">
+    <button class="lv on" data-l="support">🌱 支援（一人一句）</button>
+    <button class="lv" data-l="basic">⭐ 基本（兩人題）</button>
+    <button class="lv" data-l="challenge">🔥 挑戰（互相指稱／出題）</button>
+  </div>
+  <div class="done-list" id="doneList"></div>
+  <div id="main"></div>
+  <div class="panel">
+    <h3>活動後想一想</h3>
+    <p class="msg">「我是無賴」這句話，為什麼騎士不會說、無賴也不會說？你能向同伴重述一次嗎？</p>
+    <div class="btn-row"><button class="btn btn-yellow" id="reflectBtn">✏️ 寫一句反思</button></div>
+    <div id="reflectOut" class="msg hidden" style="margin-top:8px"></div>
+  </div>
+  <footer class="teacher-entry"><button class="tbtn" id="teacherBtn">老師說明</button></footer>
+</div>
+<div class="overlay hidden" id="ov"><div class="card" id="ovCard"></div></div>
+<script src="../js/common.js"></script>
+<script>
+/* 題目均以窮舉確認只有一組答案。hints 只引導假設，不直接說出身份。 */
+const PUZZLES=[
+  {id:"t0",level:"support",kind:"guide",title:"導引：先走完兩條假設",
+    people:[{id:"a",name:"小安",said:"我是無賴。"}],
+    sol:null, // 悖論：兩種假設都說不通
+    guide:true},
+  {id:"s1",level:"support",title:"一人一句",
+    people:[{id:"a",name:"小安",said:"一個星期有七天。"}],
+    sol:{a:"knight"}, fact:true},
+  {id:"s2",level:"support",title:"一人一句",
+    people:[{id:"a",name:"小樂",said:"三角形有四條邊。"}],
+    sol:{a:"knave"}, fact:true},
+  {id:"s3",level:"support",title:"一人一句",
+    people:[{id:"a",name:"小晴",said:"香港在南極。"}],
+    sol:{a:"knave"}, fact:true},
+  {id:"s4",level:"support",title:"一人一句",
+    people:[{id:"a",name:"小天",said:"一天有二十四小時。"}],
+    sol:{a:"knight"}, fact:true},
+  {id:"b1",level:"basic",title:"兩人題（一人說話）",
+    people:[{id:"a",name:"小明",said:"我們兩個都是無賴。"},{id:"b",name:"小華",said:null}],
+    sol:{a:"knave",b:"knight"}},
+  {id:"b2",level:"basic",title:"兩人題",
+    people:[{id:"a",name:"小明",said:"小華是無賴。"},{id:"b",name:"小華",said:"我們兩個都是無賴。"}],
+    sol:{a:"knight",b:"knave"}},
+  {id:"b3",level:"basic",title:"兩人題",
+    people:[{id:"a",name:"阿樂",said:"阿文是騎士。"},{id:"b",name:"阿文",said:"我們正好是兩種不同的人。"}],
+    sol:{a:"knave",b:"knave"}},
+  {id:"b4",level:"basic",title:"兩人題",
+    people:[{id:"a",name:"小明",said:"小華和我都是騎士。"},{id:"b",name:"小華",said:"小明是無賴。"}],
+    sol:{a:"knave",b:"knight"}},
+  {id:"c1",level:"challenge",title:"互相指稱",
+    people:[{id:"a",name:"阿珍",said:"我們是同一種人。"},{id:"b",name:"阿偉",said:"阿珍是無賴。"}],
+    sol:{a:"knave",b:"knight"}},
+  {id:"c2",level:"challenge",title:"互相指稱",
+    people:[{id:"a",name:"阿珍",said:"阿偉是無賴。"},{id:"b",name:"阿偉",said:"我們是同一種人。"}],
+    sol:{a:"knight",b:"knave"}},
+  {id:"c3",level:"challenge",title:"互相指稱",
+    people:[{id:"a",name:"小海",said:"小河是騎士。"},{id:"b",name:"小河",said:"我們是同一種人。"}],
+    sol:{a:"knight",b:"knight"}}
+];
+
+const state={level:"support",id:"t0",mark:{},hint:0,best:{},create:null};
+const LAB={knight:"騎士",knave:"無賴"};
+
+function listForLevel(){return PUZZLES.filter(p=>p.level===state.level);}
+function cur(){return PUZZLES.find(p=>p.id===state.id)||listForLevel()[0];}
+
+function uniqueSol(people,pred){
+  /* pred(assign) returns whether statements consistent. Used by create-a-puzzle. */
+  const ids=people.map(p=>p.id);
+  const sols=[];
+  const rec=function(i,as){
+    if(i===ids.length){if(pred(as)) sols.push(Object.assign({},as));return;}
+    as[ids[i]]="knight";rec(i+1,as);
+    as[ids[i]]="knave";rec(i+1,as);
+  };
+  rec(0,{});return sols;
+}
+
+function renderList(){
+  const el=$("doneList");el.innerHTML="";
+  listForLevel().forEach((p,i)=>{
+    const s=document.createElement("span");
+    s.textContent=(i+1)+". "+(p.kind==="guide"?"導引":p.people.map(x=>x.name).join("、"));
+    if(state.best[p.id]) s.classList.add("ok");
+    if(p.id===state.id) s.style.outline="3px solid #2563eb";
+    s.style.cursor="pointer";s.onclick=()=>load(p.id);
+    el.appendChild(s);
+  });
+  if(state.level==="challenge"){
+    const s=document.createElement("span");s.textContent="＋ 出題給鄰組";
+    s.onclick=()=>openCreate();el.appendChild(s);
+  }
+}
+
+function load(id){
+  state.id=id;state.mark={};state.hint=0;render();
+}
+
+function personCard(p){
+  const mk=state.mark[p.id];
+  const said=p.said?`<div class="said">「${p.said}」</div>`:`<div class="said" style="background:#f3f4f6;font-weight:700">（這位沒有說話）</div>`;
+  return `<div class="person">
+    <h3>${p.name}</h3>${said}
+    <div class="choices">
+      <button class="knight ${mk==="knight"?"on":""}" data-id="${p.id}" data-v="knight">🛡️ 騎士（永遠說真話）</button>
+      <button class="knave ${mk==="knave"?"on":""}" data-id="${p.id}" data-v="knave">😈 無賴（永遠說假話）</button>
+    </div>
+  </div>`;
+}
+
+function hintText(p,n){
+  const A=p.people[0],B=p.people[1];
+  if(p.guide){
+    return [
+      "先假設小安是騎士。騎士永遠說真話，那麼「我是無賴」就是真的——可是騎士不可能是無賴。這條假設說不通。",
+      "再假設小安是無賴。無賴永遠說假話，那麼「我是無賴」會變成真話——無賴也不能說真話。兩條假設都說不通。",
+      "結論：島上沒有人會說「我是無賴」。這題不是要你選出一種身份，而是看見「說不通」的力量。"
+    ][Math.min(n-1,2)];
+  }
+  if(p.people.length===1){
+    return n===1?`先假設 ${A.name} 是騎士。那麼這句話必須是真的。這句話在現實裏說得通嗎？`:`再假設 ${A.name} 是無賴。那麼這句話必須是假的。哪一條假設說不通？`;
+  }
+  const lines=[
+    `先假設 ${A.name} 是騎士。騎士說真話，所以「${A.said}」成立。這會推出另一人是什麼？有沒有說不通？`,
+    B?`再假設 ${A.name} 是無賴。無賴說假話，所以「${A.said}」不成立。請把兩條假設都走完，才下判斷。`:""
+  ];
+  if(B&&B.said) lines.push(`記着：${B.name} 說「${B.said}」。無論你假設誰是騎士，都要檢查這句能不能和身份同時成立。`);
+  return lines.filter(Boolean)[Math.min(n-1,lines.filter(Boolean).length-1)];
+}
+
+function renderGuide(p){
+  return `<div class="panel">
+    <div class="badge">導引題　不必選身份</div>
+    <h2>${p.people[0].name} 說：「${p.people[0].said}」</h2>
+    <div class="steps">
+      <b>請跟住三步走（先想 20 秒再按提示）：</b>
+      <ol>
+        <li>假設一種可能</li>
+        <li>看看有沒有說不通</li>
+        <li>才下判斷</li>
+      </ol>
+    </div>
+    <p class="msg" id="fb">先自己走一次：「如果小安是騎士，這句話還能不能成立？」</p>
+    <div class="btn-row">
+      <button class="btn btn-yellow" id="hintBtn">💡 下一步提示</button>
+      <button class="btn btn-green" id="nextBtn">我走完了，下一題</button>
+    </div>
+    <div id="guideSteps"></div>
+  </div>`;
+}
+
+function renderPuzzle(p){
+  if(p.guide) return renderGuide(p);
+  return `<div class="panel">
+    <div class="badge">${p.title}</div>
+    <h2>他們是騎士還是無賴？</h2>
+    <p>先在心裏（或學習單）寫下假設，再點選。提示只幫你按步推理，不會直接告訴答案。</p>
+    <div class="who">${p.people.map(personCard).join("")}</div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="checkBtn">✅ 檢查推理</button>
+      <button class="btn btn-yellow" id="hintBtn">💡 提示（不給答案）</button>
+      <button class="btn" id="nextBtn">下一題</button>
+    </div>
+    <div class="msg" id="fb">選好每個人的身份後再檢查。</div>
+  </div>`;
+}
+
+function render(){
+  renderList();
+  $("main").innerHTML=renderPuzzle(cur());
+  bind();
+}
+
+function bind(){
+  const p=cur();
+  document.querySelectorAll(".choices button").forEach(b=>{
+    b.onclick=()=>{state.mark[b.dataset.id]=b.dataset.v;render();};
+  });
+  if($("hintBtn"))$("hintBtn").onclick=()=>{
+    state.hint++;
+    const box=$("guideSteps")||$("fb");
+    const t=hintText(p,state.hint);
+    if($("guideSteps")){
+      const d=document.createElement("p");d.className="msg hint";d.textContent=t;$("guideSteps").appendChild(d);
+    }else{
+      $("fb").className="msg hint";$("fb").textContent=t;
+    }
+  };
+  if($("checkBtn"))$("checkBtn").onclick=()=>check(p);
+  if($("nextBtn"))$("nextBtn").onclick=()=>{
+    if(p.guide) state.best[p.id]="guide";
+    const list=listForLevel();const i=list.findIndex(x=>x.id===p.id);
+    load((list[(i+1)%list.length]||list[0]).id);
+  };
+}
+
+function check(p){
+  for(const person of p.people){
+    if(!state.mark[person.id]){$("fb").className="msg warn";$("fb").textContent="請先為每一個人選擇「騎士」或「無賴」。";return;}
+  }
+  let ok=true;
+  for(const k in p.sol) if(state.mark[k]!==p.sol[k]) ok=false;
+  if(ok){
+    state.best[p.id]="ok";
+    $("fb").className="msg ok";
+    $("fb").textContent="說得通！請向同學講講：你先假設了什麼？哪一條假設說不通？";
+    renderList();
+  }else{
+    $("fb").className="msg warn";
+    $("fb").textContent="這個組合還有說不通的地方。試試先假設其中一人是騎士，把兩條路都走完。這裡不會公布答案。";
+  }
+}
+
+function openCreate(){
+  openCard(`<h2>出題給鄰組</h2>
+    <p>請設計一道兩人題，而且必須只有一個合理答案。填好陳述後，按「檢查這題是否只有一個答案」（只告訴你可否出題，不會在作答頁公布答案）。</p>
+    <label class="lab">第一人稱呼</label><input id="n1" value="島民甲" maxlength="8" autocomplete="off">
+    <label class="lab">他／她說</label><select id="s1">
+      <option value="both-knave">我們兩個都是無賴</option>
+      <option value="both-knight">我們兩個都是騎士</option>
+      <option value="same">我們是同一種人</option>
+      <option value="diff">我們是兩種不同的人</option>
+      <option value="b-knight">對方是騎士</option>
+      <option value="b-knave">對方是無賴</option>
+    </select>
+    <label class="lab">第二人稱呼</label><input id="n2" value="島民乙" maxlength="8" autocomplete="off">
+    <label class="lab">他／她說</label><select id="s2">
+      <option value="silent">（不說話）</option>
+      <option value="both-knave">我們兩個都是無賴</option>
+      <option value="both-knight">我們兩個都是騎士</option>
+      <option value="same">我們是同一種人</option>
+      <option value="diff">我們是兩種不同的人</option>
+      <option value="a-knight">對方是騎士</option>
+      <option value="a-knave">對方是無賴</option>
+    </select>
+    <div class="btn-row"><button class="btn btn-primary" id="ckUniq">檢查是否只有一個答案</button>
+    <button class="btn" id="cClose">關閉</button></div>
+    <div class="msg" id="cFb">檢查後才把 iPad 交給鄰組。</div>`);
+  $("cClose").onclick=closeCard;
+  $("ckUniq").onclick=()=>{
+    const ev=function(kind,as,me,ot){
+      if(kind==="silent") return true;
+      const same=as[me]===as[ot];
+      let truth=false;
+      if(kind==="both-knave") truth=as[me]==="knave"&&as[ot]==="knave";
+      if(kind==="both-knight") truth=as[me]==="knight"&&as[ot]==="knight";
+      if(kind==="same") truth=same;
+      if(kind==="diff") truth=!same;
+      if(kind==="b-knight"||kind==="a-knight") truth=as[ot]==="knight";
+      if(kind==="b-knave"||kind==="a-knave") truth=as[ot]==="knave";
+      return as[me]==="knight"?truth:!truth;
+    };
+    const s1=$("s1").value,s2=$("s2").value;
+    const sols=uniqueSol([{id:"a"},{id:"b"}],as=>ev(s1,as,"a","b")&&ev(s2,as,"b","a"));
+    const fb=$("cFb");
+    if(sols.length===1){
+      fb.className="msg ok";
+      fb.textContent="這題恰好只有一個合理答案，可以給鄰組！請準備好「哪一條假設說不通」的解釋。不要告訴他們答案。";
+    }else if(sols.length===0){
+      fb.className="msg warn";fb.textContent="這題怎麼假設都說不通，請改一改陳述。";
+    }else{
+      fb.className="msg warn";fb.textContent="這題有超過一種可能，鄰組無法唯一判斷。請改一改其中一句話。";
+    }
+  };
+}
+
+function openTeacher(){
+  const rows=PUZZLES.filter(p=>p.sol).map(p=>{
+    const ans=p.people.map(x=>x.name+"＝"+(LAB[p.sol[x.id]]||"（無）")).join("，");
+    return `<tr><td>${p.level}</td><td>${p.people.map(x=>x.name+"：「"+(x.said||"沒說話")+"」").join("<br>")}</td><td>${ans}</td></tr>`;
+  }).join("");
+  openCard(`<div class="teacher"><h2>老師說明　第 2 節</h2>
+  <h3>學習目標</h3>
+  <ul><li>分清「若這句為真／為假會怎樣」。</li><li>初步認識：先假設，推出矛盾就排除（簡單反證法）。</li><li>支援與基本不會出現三人群題。</li></ul>
+  <h3>學生頁不會一鍵公布答案。</h3>
+  <p>下面僅供教師核對。網址加 <code>?teacher=1</code> 可直接打開此頁。</p>
+  <table class="t"><tr><th>層</th><th>陳述</th><th>答案</th></tr>${rows}</table>
+  <p>導引題「我是無賴」兩種假設都說不通，課堂重點是體驗矛盾，不要求選出一種身份。</p>
+  <div class="btn-row"><button class="btn" id="tClose">關閉</button></div></div>`);
+  $("tClose").onclick=closeCard;
+}
+
+document.querySelectorAll(".lv").forEach(b=>b.onclick=()=>{
+  state.level=b.dataset.l;
+  document.querySelectorAll(".lv").forEach(x=>x.classList.toggle("on",x===b));
+  load(listForLevel()[0].id);
+});
+$("teacherBtn").onclick=openTeacher;
+$("reflectBtn").onclick=()=>{
+  openCard(`<h2>我原本以為……</h2>
+    <label class="lab">我原本以為</label><input id="r1" type="text" maxlength="80" autocomplete="off">
+    <label class="lab">現在發現</label><input id="r2" type="text" maxlength="80" autocomplete="off">
+    <label class="lab">因為</label><input id="r3" type="text" maxlength="80" autocomplete="off">
+    <div class="btn-row"><button class="btn btn-primary" id="rOk">完成</button><button class="btn" id="rNo">取消</button></div>`);
+  $("rOk").onclick=()=>{$("reflectOut").classList.remove("hidden");$("reflectOut").textContent=`我原本以為${$("r1").value}，現在發現${$("r2").value}，因為${$("r3").value}。`;closeCard();};
+  $("rNo").onclick=closeCard;
+};
+render();
+if(isTeacherMode()) openTeacher();
+
+(function selfTest(){
+  /* 驗證內建題唯一解：窮舉 2^n 種身份，檢查陳述真值是否與身份一致 */
+  function consistent(p,as){
+    const nameToId={};p.people.forEach(x=>nameToId[x.name]=x.id);
+    function isTrue(said,speaker){
+      if(!said) return true;
+      const others=p.people.filter(x=>x.id!==speaker.id);
+      const other=others[0];
+      const typ=id=>as[id];
+      if(said==="我是無賴。") return typ(speaker.id)==="knave";
+      if(/一個星期有七天|一天有二十四小時/.test(said)) return true;
+      if(/三角形有四條邊|香港在南極/.test(said)) return false;
+      if(said.includes("都是無賴")&&said.includes("兩個")) return p.people.every(x=>typ(x.id)==="knave");
+      if(said.includes("都是騎士")) return p.people.every(x=>typ(x.id)==="knight");
+      if(said.includes("同一種人")) return typ(p.people[0].id)===typ(p.people[1].id);
+      if(said.includes("兩種不同")) return typ(p.people[0].id)!==typ(p.people[1].id);
+      const m=said.match(/^(小華|阿文|阿偉|小河|小明|阿珍|小海)是(騎士|無賴)。$/);
+      if(m){
+        const who=p.people.find(x=>x.name===m[1]);
+        return typ(who.id)===(m[2]==="騎士"?"knight":"knave");
+      }
+      if(said.includes("小明是無賴")) return typ(p.people.find(x=>x.name==="小明").id)==="knave";
+      return null;
+    }
+    for(const person of p.people){
+      if(!person.said) continue;
+      const t=isTrue(person.said,person);
+      if(t===null) return null;
+      if(as[person.id]==="knight" && !t) return false;
+      if(as[person.id]==="knave" && t) return false;
+    }
+    return true;
+  }
+  const fails=[];
+  PUZZLES.filter(p=>p.sol).forEach(p=>{
+    const ids=p.people.map(x=>x.id);
+    const sols=[];
+    const rec=(i,as)=>{
+      if(i===ids.length){if(consistent(p,as)) sols.push(Object.assign({},as));return;}
+      as[ids[i]]="knight";rec(i+1,as);as[ids[i]]="knave";rec(i+1,as);
+    };
+    rec(0,{});
+    const uniq=sols.length===1 && ids.every(id=>sols[0][id]===p.sol[id]);
+    if(!uniq) fails.push({id:p.id,sols,declared:p.sol});
+  });
+  if(fails.length) console.error("騎士題自測失敗",fails); else console.log("騎士題自測全部通過");
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+/* 校本趣味數學：共用樣式（離線、系統字體、iPad Safari） */
+:root{
+  --ink:#1f2937;
+  --muted:#4b5563;
+  --bg:#fff6e9;
+  --card:#ffffff;
+  --line:#f0e0c4;
+  --accent:#ff7a45;
+  --blue:#3b82f6;
+  --green:#059669;
+  --teal:#0d9488;
+  --purple:#7c3aed;
+  --pink:#db2777;
+  --yellow:#f59e0b;
+  --soft:#fff1d6;
+  --ok:#ecfdf5;
+  --warn:#fff1f2;
+  --hint:#fffbeb;
+  --shadow:0 4px 0 #ead7b8;
+  --radius:20px;
+  --font:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","PingFang HK","Heiti TC","Microsoft JhengHei",sans-serif;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --safe-left:env(safe-area-inset-left,0px);
+  --safe-right:env(safe-area-inset-right,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{touch-action:manipulation;padding-left:var(--safe-left);padding-right:var(--safe-right)}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer;touch-action:manipulation;border:none}
+img,svg{max-width:100%;display:block}
+a{color:var(--blue)}
+.hidden{display:none!important}
+
+.noscript{margin:12px;padding:16px 18px;background:#fff1f2;border:3px solid #fb7185;border-radius:16px;font-size:20px;line-height:1.55}
+.app{max-width:1100px;margin:0 auto;padding:12px 16px calc(28px + var(--safe-bottom))}
+
+/* 頂列 */
+.topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.back{display:inline-flex;align-items:center;justify-content:center;min-height:48px;min-width:48px;padding:8px 16px;border-radius:16px;background:#fff;box-shadow:var(--shadow);font-size:18px;font-weight:700;color:var(--ink);text-decoration:none;border:2px solid var(--line)}
+.back:active{transform:translateY(2px);box-shadow:0 2px 0 #ead7b8}
+.brand{flex:1;min-width:200px}
+.brand h1{margin:0;font-size:28px;letter-spacing:.5px;line-height:1.25}
+.brand .lesson{display:inline-block;font-size:15px;font-weight:800;background:#fff;border-radius:999px;padding:4px 12px;margin-right:6px;box-shadow:var(--shadow);color:#c2410c}
+
+/* 任務目的：必須顯眼 */
+.mission{background:#fff;border:3px solid #fb923c;border-radius:18px;padding:12px 16px;margin:10px 0 14px;box-shadow:var(--shadow)}
+.mission .lab{font-size:14px;font-weight:800;letter-spacing:1px;color:#c2410c;margin:0 0 4px}
+.mission p{margin:0;font-size:20px;line-height:1.55;font-weight:650}
+
+/* 面板與按鈕 */
+.panel{background:var(--card);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);margin-bottom:12px}
+.panel h2,.panel h3{margin:0 0 10px;font-size:22px}
+.msg{font-size:18px;line-height:1.55;padding:10px 12px;border-radius:14px;background:var(--soft);min-height:48px}
+.msg.ok{background:var(--ok)}
+.msg.warn{background:var(--warn)}
+.msg.hint{background:var(--hint)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:52px;padding:10px 18px;border-radius:16px;font-size:20px;font-weight:800;background:#e5e7eb;color:var(--ink);box-shadow:0 3px 0 #cfd4da;text-decoration:none;border:none}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 #cfd4da}
+.btn:disabled{opacity:.5;transform:none;cursor:not-allowed}
+.btn-primary{background:#fb923c;color:#1f2937;box-shadow:0 3px 0 #c2410c}
+.btn-blue{background:#93c5fd;box-shadow:0 3px 0 #1d4ed8}
+.btn-green{background:#86efac;box-shadow:0 3px 0 #047857}
+.btn-purple{background:#d8b4fe;box-shadow:0 3px 0 #6d28d9}
+.btn-pink{background:#f9a8d4;box-shadow:0 3px 0 #be185d}
+.btn-yellow{background:#fde047;box-shadow:0 3px 0 #ca8a04}
+.btn-teal{background:#5eead4;box-shadow:0 3px 0 #0f766e}
+.btn-ghost{background:#fff;border:2px solid var(--line);box-shadow:var(--shadow)}
+.btn-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.btn-row .btn{flex:1 1 140px}
+
+.levels{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.lv{min-height:48px;padding:8px 16px;border-radius:14px;font-size:18px;font-weight:800;background:#e5e7eb}
+.lv.on[data-l=support]{background:#bbf7d0}
+.lv.on[data-l=basic]{background:#bfdbfe}
+.lv.on[data-l=challenge]{background:#fecaca}
+
+/* 彈窗 */
+.overlay{position:fixed;inset:0;background:rgba(31,41,55,.45);display:flex;align-items:center;justify-content:center;z-index:40;padding:16px;padding-top:calc(16px + var(--safe-top))}
+.card{background:#fff;border-radius:26px;max-width:640px;width:100%;max-height:92vh;overflow:auto;-webkit-overflow-scrolling:touch;padding:22px;box-shadow:0 12px 32px rgba(0,0,0,.25)}
+.card h2{margin:0 0 10px;font-size:28px}
+.card p{font-size:19px;line-height:1.6;margin:8px 0}
+
+/* 老師入口要低調 */
+.teacher-entry{margin-top:18px;text-align:right}
+.tbtn{background:none;border:none;color:#c4b5a0;font-size:14px;padding:10px 8px;min-height:44px}
+.teacher{font-size:17px;line-height:1.6}
+.teacher h3{font-size:20px;margin:14px 0 4px}
+.teacher code{background:#f3f4f6;padding:1px 6px;border-radius:6px}
+
+table.t{border-collapse:collapse;width:100%;font-size:17px;margin:8px 0}
+table.t th,table.t td{border:1px solid #e5e7eb;padding:8px;text-align:center}
+table.t th{background:#fff7ed}
+
+footer.site{margin-top:16px;color:var(--muted);font-size:14px;text-align:center}
+
+/* 表單 */
+label.lab{display:block;font-weight:800;margin:8px 0 4px;font-size:18px}
+input[type=text],input[type=number],textarea,select{
+  width:100%;min-height:52px;padding:10px 12px;border:3px solid #e7d3ae;border-radius:14px;background:#fff;font-size:22px;font-weight:700
+}
+textarea{min-height:90px;resize:vertical}
+input:focus,textarea:focus,select:focus{outline:3px solid #fdba74;border-color:#fb923c}
+
+.pill{display:inline-flex;align-items:center;gap:4px;background:#fff;border-radius:999px;padding:4px 10px;font-weight:700;font-size:16px}
+
+@media (max-width:700px){
+  .brand h1{font-size:24px}
+  .mission p{font-size:18px}
+}

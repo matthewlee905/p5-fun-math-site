@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>第 5 節　地圖著色戰線</title>
+<style>
+:root{--ink:#2b2d42;--bg:#fff8ec;--card:#ffffff;--accent:#ff8c42;--blue:#3a86ff;--green:#2a9d8f;--soft:#f1ebe0}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","PingFang HK","Heiti TC","Microsoft JhengHei",sans-serif;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-text-size-adjust:100%}
+button{font-family:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+.app{max-width:1200px;margin:0 auto;padding:12px 14px 40px}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+h1{margin:0;font-size:32px;letter-spacing:1px}
+h1 .logo{display:inline-block;width:40px;height:40px;vertical-align:-8px;margin-right:6px}
+.rule{background:#fff;border:3px dashed #ffc078;border-radius:18px;padding:10px 16px;font-size:21px;line-height:1.5;margin:10px 0}
+.rule b{color:#d9480f}
+.levels{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 8px}
+.lv{border:none;border-radius:16px;padding:12px 22px;font-size:22px;font-weight:700;background:#e9ecef;min-height:56px}
+.lv.on[data-l=support]{background:#b2f2bb}.lv.on[data-l=basic]{background:#a5d8ff}.lv.on[data-l=challenge]{background:#ffc9c9}
+.maps{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.mc{border:3px solid transparent;background:#fff;border-radius:16px;padding:6px 8px;min-width:118px;min-height:56px;font-size:18px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:4px;box-shadow:0 2px 0 #e7dccb}
+.mc.on{border-color:var(--blue)}
+.mc svg{width:96px;height:58px}
+.mc .done{font-size:15px;color:var(--green);font-weight:700}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:14px;align-items:start}
+@media (orientation:portrait),(max-width:900px){.main{grid-template-columns:1fr}}
+.board{background:#fff;border-radius:22px;padding:12px;box-shadow:0 3px 0 #e7dccb;position:relative}
+.board h2{margin:2px 6px 8px;font-size:24px}
+#map{width:100%;height:auto;display:block;min-height:260px;max-height:70vh;aspect-ratio:16/9;background:#e7f5ff;border-radius:14px;touch-action:manipulation}
+.cell{shape-rendering:crispEdges}
+.border{stroke:#1c1e2e;stroke-width:.16;stroke-linecap:round;fill:none}
+.conf{stroke:#e03131;stroke-width:.2;stroke-linecap:round;stroke-dasharray:.25 .2;fill:none;animation:blink 1s ease-in-out infinite}
+@keyframes blink{50%{opacity:.35}}
+.pulse{fill:none;stroke:#ffd43b;stroke-width:.22;animation:pul 1.1s ease-in-out infinite}
+@keyframes pul{50%{stroke:#fd7e14;stroke-width:.32}}
+.side{display:flex;flex-direction:column;gap:12px}
+.panel{background:#fff;border-radius:22px;padding:12px 14px;box-shadow:0 3px 0 #e7dccb}
+.panel h3{margin:0 0 8px;font-size:21px}
+.palette{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.sw{height:52px;border-radius:16px;border:4px solid #fff;box-shadow:0 0 0 2px #ced4da;font-size:17px;font-weight:700;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;color:#212529;text-shadow:0 0 3px #fff}
+.sw.on{box-shadow:0 0 0 5px var(--ink);transform:scale(1.04)}
+.sw.eraser{background:repeating-linear-gradient(45deg,#fff 0 8px,#f1f3f5 8px 16px);align-items:center;padding:0}
+.count{font-size:24px;font-weight:800;text-align:center;line-height:1.4}
+.count .n{display:inline-block;min-width:48px;font-size:36px;color:var(--blue)}
+.used{display:flex;gap:6px;justify-content:center;min-height:26px;margin-top:4px}
+.used i{width:24px;height:24px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #adb5bd}
+.prog{text-align:center;font-size:18px;color:#555;margin-top:4px}
+.msg{font-size:19px;line-height:1.5;min-height:56px;padding:8px 10px;border-radius:14px;background:var(--soft)}
+.msg.warn{background:#fff0f0}.msg.hint{background:#fff9db}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{border:none;border-radius:16px;font-size:20px;font-weight:700;min-height:58px;padding:8px;background:#e9ecef}
+.btn.hint{background:#ffe066}.btn.clear{background:#ffd8a8}.btn.next{background:#b2f2bb}.btn.think{background:#d0bfff}
+.btn.big{font-size:22px;min-height:62px}
+.hidden{display:none!important}
+.overlay{position:fixed;inset:0;background:rgba(43,45,66,.45);display:flex;align-items:center;justify-content:center;z-index:20;padding:16px}
+.card{background:#fff;border-radius:26px;max-width:640px;width:100%;max-height:92vh;overflow:auto;-webkit-overflow-scrolling:touch;padding:22px 22px 18px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.card h2{margin:0 0 10px;font-size:30px}
+.card p{font-size:21px;line-height:1.6;margin:8px 0}
+.card .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.card .row .btn{flex:1 1 180px}
+.big-n{font-size:56px;font-weight:900;color:var(--blue)}
+.q{margin:14px 0;padding:10px 12px;background:var(--soft);border-radius:16px}
+.q .t{font-size:21px;font-weight:700;margin-bottom:8px}
+.opts{display:flex;gap:8px;flex-wrap:wrap}
+.opt{border:3px solid #ced4da;background:#fff;border-radius:14px;font-size:20px;min-width:72px;min-height:52px;padding:6px 12px;font-weight:700}
+.opt.on{border-color:var(--blue);background:#e7f5ff}
+.fb{font-size:18px;margin-top:6px;color:#495057}
+table.t{border-collapse:collapse;width:100%;font-size:18px;margin:6px 0}
+table.t td,table.t th{border:1px solid #dee2e6;padding:6px 8px;text-align:center}
+.teacher{font-size:17px!important;line-height:1.6}
+.teacher h3{font-size:21px;margin:14px 0 4px}
+.teacher li{margin:3px 0}
+footer{margin-top:18px;text-align:right}
+.tbtn{border:none;background:none;color:#adb5bd;font-size:14px;padding:10px 12px}
+.reveal{background:linear-gradient(135deg,#fff3bf,#d3f9d8);border-radius:18px;padding:12px 14px;margin-top:10px}
+.confetti{position:fixed;top:-20px;width:12px;height:16px;z-index:30;pointer-events:none;animation:fall 1.8s linear forwards;border-radius:3px}
+@keyframes fall{to{transform:translateY(105vh) rotate(540deg);opacity:.6}}
+
+.topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 8px}
+.back{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:8px 16px;border-radius:16px;background:#fff;box-shadow:0 3px 0 #e7dccb;font-size:18px;font-weight:700;color:inherit;text-decoration:none;border:2px solid #ffd8a8}
+.mission{background:#fff;border:3px solid #f472b6;border-radius:18px;padding:12px 16px;margin:8px 0 12px;box-shadow:0 3px 0 #e7dccb}
+.mission .lab{font-size:14px;font-weight:800;letter-spacing:1px;color:#be185d;margin:0 0 4px}
+.mission p{margin:0;font-size:20px;line-height:1.55;font-weight:650}
+.chi4{font-size:13px;color:#be185d;font-weight:800}
+.lesson{display:inline-block;font-size:15px;font-weight:800;background:#fff;border-radius:999px;padding:4px 12px;margin-right:8px;box-shadow:0 3px 0 #e7dccb;color:#be185d;vertical-align:middle}
+</style>
+</head>
+<body>
+<noscript><div class="rule" style="background:#fff0f0;margin:12px">請用 Safari 打開這個檔案（不要只在對話預覽裡觀看）。本課件需要瀏覽器執行，才能顯示地圖。不要只在聊天預覽裡觀看 HTML。</div></noscript>
+<div class="app">
+<div class="topbar">
+  <a class="back" href="../index.html">← 返回總覽</a>
+  <header>
+  <h1><svg class="logo" viewBox="0 0 40 40"><rect x="2" y="2" width="18" height="18" rx="4" fill="#ff6b6b"/><rect x="20" y="2" width="18" height="18" rx="4" fill="#4dabf7"/><rect x="2" y="20" width="18" height="18" rx="4" fill="#ffd43b"/><rect x="20" y="20" width="18" height="18" rx="4" fill="#69db7c"/></svg><span class="lesson">第 5 節</span>地圖著色戰線</h1>
+  </header>
+</div>
+<div class="mission">
+  <div class="lab">任務目的</div>
+  <p>相鄰區域（共邊才算，只碰一角不算）必須不同色；發現有些圖三色會卡住，四色就夠。</p>
+</div>
+<div class="rule">🖍️ 為每個區域著色：<b>共用一條邊</b>的兩個區域，顏色要不同。只碰到一個<b>角</b>，不算相鄰。開始時不限制只能用幾色，先自己試試。</div>
+
+<div class="levels" id="levels">
+  <button class="lv" data-l="support">🌱 支援</button>
+  <button class="lv" data-l="basic">⭐ 基本</button>
+  <button class="lv" data-l="challenge">🔥 挑戰</button>
+  <button class="lv btn think hidden" id="thinkTop" style="margin-left:auto">💭 想一想</button>
+</div>
+<div class="maps" id="mapList"></div>
+
+<div class="main">
+  <div class="board">
+    <h2 id="mapTitle">地圖</h2>
+    <svg id="map" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+  <div class="side">
+    <div class="panel">
+      <h3>① 先選顏色</h3>
+      <div class="palette" id="palette"></div>
+    </div>
+    <div class="panel">
+      <div class="count">你現在用了 <span class="n" id="nUsed">0</span> 種顏色</div>
+      <div class="used" id="usedDots"></div>
+      <div class="prog" id="prog"></div>
+    </div>
+    <div class="msg" id="msg">② 再點地圖上的區域著色。再點一次同一種顏色，可以清除。</div>
+    <div class="btns">
+      <button class="btn hint" id="hintBtn">💡 提示</button>
+      <button class="btn clear" id="clearBtn">🧽 清除重來</button>
+      <button class="btn next" id="nextBtn">➡️ 下一幅</button>
+      <button class="btn think hidden" id="thinkBtn">💭 想一想</button>
+    </div>
+  </div>
+</div>
+<footer><button class="tbtn" id="teacherBtn">老師說明</button></footer>
+</div>
+
+<div class="overlay hidden" id="ov"><div class="card" id="ovCard"></div></div>
+
+<script>
+/* ============================================================
+   地圖資料
+   每幅地圖用方格字串定義：同一字母 = 同一區域；"." = 海（不用著色）。
+   相鄰規則：兩個區域「共用至少一條格邊」才算相鄰；只碰角不算。
+   相鄰關係由程式從方格自動計算（必然對稱），並在載入時用回溯法
+   重新計算著色色數 χ（chromatic number），與下面標註的 chi 比對。
+   ============================================================ */
+const MAPS=[
+ // s1 棋盤六國：2×3 棋盤，對角只接角 → χ = 2
+ {id:'s1',level:'support',name:'棋盤六國（4–6 區起手）',chi:2,rows:[
+ 'AAAABBBBCCCC','AAAABBBBCCCC','AAAABBBBCCCC','DDDDEEEEFFFF','DDDDEEEEFFFF','DDDDEEEEFFFF']},
+ // s2 回字城堡：一圈套一圈（相鄰圖是一條路徑）→ χ = 2
+ {id:'s2',level:'support',name:'回字城堡（4–6 區起手）',chi:2,rows:[
+ 'AAAAAAAAAAAA','ABBBBBBBBBBA','ABCCCCCCCCBA','ABCDDDDDDCBA','ABCCCCCCCCBA','ABBBBBBBBBBA','AAAAAAAAAAAA']},
+ // s3 三角小島：A、B、C 兩兩相鄰（三角形）→ χ = 3
+ {id:'s3',level:'support',name:'三角小島（4–6 區起手）',chi:3,rows:[
+ 'AAAABBBBEE','AAAABBBBEE','AAAABBBBEE','CCCCCCCCEE','CCCCCCCCEE','DDDDDDDDDD']},
+ // s4 花朵村：中心 E 被 4 區圍住（輪圖 W4，外圈偶數）→ χ = 3（鄰居多也不一定要 4 色）
+ {id:'s4',level:'support',name:'花朵村（4–6 區起手）',chi:3,rows:[
+ 'AAAAABBBBB','AAAAABBBBB','AAAEEEEBBB','DDDEEEECCC','DDDDDCCCCC','DDDDDCCCCC']},
+ // b1 環湖五村：5 區繞湖成一圈（奇數環 C5）→ χ = 3
+ {id:'b1',level:'basic',name:'環湖五村',chi:3,rows:[
+ 'AAAAABBBBB','AA......BB','EE......CC','EE......CC','EEEDDDDDCC']},
+ // b2 磚牆小屋：錯位磚牆（三角格結構）→ χ = 3
+ {id:'b2',level:'basic',name:'磚牆小屋',chi:3,rows:[
+ 'AAAABBBBCCCC','DDEEEEFFFFGG','HHHHIIIIJJJJ','KKLLLLMMMMNN']},
+ // b3 四國相連：A、B、C、D 四區兩兩相鄰（含 K4）→ χ = 4
+ {id:'b3',level:'basic',name:'四國相連（三色不夠）',chi:4,rows:[
+ 'AAAAAABBBBBBFF','AAAAAABBBBBBFF','AAAADDDDBBBBFF','AAAADDDDBBBBFF','CCCCDDDDCCCCFF','CCCCCCCCCCCCFF','EEEEEEEEEEEEEE']},
+ // b4 五瓣花：中心 F 被 5 區圍成奇數環（輪圖 W5，無 K4 但仍要 4 色）→ χ = 4
+ {id:'b4',level:'basic',name:'五瓣花（三色不夠）',chi:4,rows:[
+ 'AAAAABBBBB','AAAAABBBBB','AAAFFFFBBB','EEEFFFFCCC','EEEFFFFCCC','EEEDDDDCCC','EEEDDDDCCC']},
+ // c1 大城小巷：12 區，回溯法確認 3 色不足、4 色足夠 → χ = 4
+ {id:'c1',level:'challenge',name:'大城小巷（三色不夠）',chi:4,rows:[
+ 'AAAABBBBBCCCCC','AAAABBBBBCCCCC','AAGGGGBBHHHCCC','DDGGGGIIHHHCCC','DDGGGGIIHHHJJJ','DDDKKKIIIIIJJJ','EEEKKKKKLLLJJJ','EEEEEFFFLLLJJJ','EEEEEFFFFFFJJJ']},
+ // c2 蜂巢王國：20 區錯位磚（看似很難）→ χ = 3
+ {id:'c2',level:'challenge',name:'蜂巢王國',chi:3,rows:[
+ 'AAAABBBBCCCCDD','EEFFFFGGGGHHHH','IIIIJJJJKKKKLL','MMNNNNOOOOPPPP','QQQQRRRRSSSSTT']},
+ // c3 寶石群島：中心 X 被 K、L、N、O、M 圍成 5 區奇數環（W5）→ χ = 4
+ {id:'c3',level:'challenge',name:'寶石群島（三色不夠）',chi:4,rows:[
+ '..AAAA..BBBBB.','.AAAAAA.BBBBBB','.AAKKKKKKBBBB.','GGGKKXXXKKHHH.','GGGLLXXXMMHHH.','GGGLLXXXMMHHH.','..GLLNNOMMHH..','..IIINNOOJJJ..','..IIII..JJJJ..']},
+ // c4 切切切餅乾：由 4 條貫穿整幅圖的切線切出（每個交點 4 區相交）→ χ = 2（區多也可能只要 2 色）
+ {id:'c4',level:'challenge',name:'切切切餅乾',chi:2,rows:[
+ 'AAAABBBBCCCCCC','AAAABBBBCCCCCC','AAAABDDDEEECCC','FFFFDDDDEEECCC','FFFFDDDDEEEEEE','FFFFDDDDDDEEEE','GGGGHHDDDDEEEE','GGGGHHHHHHIIII','GGGGHHHHHHIIII']}
+];
+const LEVELS={support:'🌱 支援',basic:'⭐ 基本',challenge:'🔥 挑戰'};
+const PALETTE=[
+ {c:'#ff6b6b',n:'紅'},{c:'#ffa94d',n:'橙'},{c:'#ffe066',n:'黃'},{c:'#69db7c',n:'綠'},
+ {c:'#4dabf7',n:'藍'},{c:'#b197fc',n:'紫'},{c:'#f783ac',n:'粉紅'},{c:'#c08a5b',n:'棕'}
+];
+const REFLECT_AFTER=3; // 完成多少幅不同地圖後出現「想一想」
+
+/* ---------- 數學核心：相鄰圖 + 著色色數 ---------- */
+function analyse(m){
+  const R=m.rows,H=R.length,W=R[0].length,adj={},edges=[];
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const a=R[y][x];if(a!=='.')adj[a]=adj[a]||new Set();}
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const a=R[y][x];
+    for(const [dx,dy] of [[1,0],[0,1]]){
+      const nx=x+dx,ny=y+dy;if(nx>=W||ny>=H)continue;const b=R[ny][nx];
+      if(a!==b){
+        edges.push(dx?{x1:x+1,y1:y,x2:x+1,y2:y+1,a,b}:{x1:x,y1:y+1,x2:x+1,y2:y+1,a,b});
+        if(a!=='.'&&b!=='.'){adj[a].add(b);adj[b].add(a);} // 只共邊才相鄰；共角從不加入
+      }
+    }
+  }
+  return {W,H,adj,edges};
+}
+function isSymmetric(adj){for(const a in adj)for(const b of adj[a])if(!adj[b]||!adj[b].has(a))return false;return true;}
+function kColourable(adj,k){
+  const vs=Object.keys(adj).sort((p,q)=>adj[q].size-adj[p].size),col={};
+  const go=i=>{if(i===vs.length)return true;const v=vs[i];
+    for(let c=0;c<k;c++){let ok=true;for(const u of adj[v])if(col[u]===c){ok=false;break;}
+      if(ok){col[v]=c;if(go(i+1))return true;delete col[v];}}
+    return false;};
+  return go(0);
+}
+function chromatic(adj){for(let k=1;k<=8;k++)if(kColourable(adj,k))return k;return 99;}
+function selfTest(){
+  return MAPS.map(m=>{const g=analyse(m),rect=m.rows.every(r=>r.length===m.rows[0].length);
+    const sym=isSymmetric(g.adj),chi=chromatic(g.adj);
+    return {id:m.id,name:m.name,level:m.level,regions:Object.keys(g.adj).length,declared:m.chi,computed:chi,symmetric:sym,ok:rect&&sym&&chi===m.chi};});
+}
+const TEST=selfTest();
+if(TEST.some(t=>!t.ok))console.error('地圖自測失敗',TEST);else console.log('地圖自測全部通過',TEST);
+
+/* ---------- 狀態（只存在記憶體，不收集任何資料） ---------- */
+const state={level:'support',map:null,g:null,colour:{},pick:0,best:{},hintRegion:null,reflectSeen:false};
+const $=id=>document.getElementById(id);
+const NS='http://www.w3.org/2000/svg';
+const el=(t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;};
+
+function regionCentre(m,r){let sx=0,sy=0,n=0;m.rows.forEach((row,y)=>[...row].forEach((ch,x)=>{if(ch===r){sx+=x+.5;sy+=y+.5;n++;}}));return [sx/n,sy/n];}
+
+function drawThumb(m){
+  const g=analyse(m),s=el('svg',{viewBox:`-0.3 -0.3 ${g.W+.6} ${g.H+.6}`,preserveAspectRatio:'xMidYMid meet'});
+  m.rows.forEach((row,y)=>[...row].forEach((ch,x)=>{if(ch!=='.')s.appendChild(el('rect',{x,y,width:1.02,height:1.02,fill:'#ffd8a8'}));}));
+  g.edges.forEach(e=>s.appendChild(el('line',{x1:e.x1,y1:e.y1,x2:e.x2,y2:e.y2,stroke:'#555','stroke-width':.12})));
+  outerEdges(m).forEach(e=>s.appendChild(el('line',{x1:e.x1,y1:e.y1,x2:e.x2,y2:e.y2,stroke:'#555','stroke-width':.12})));
+  return s;
+}
+function outerEdges(m){const R=m.rows,H=R.length,W=R[0].length,out=[];
+  for(let x=0;x<W;x++){if(R[0][x]!=='.')out.push({x1:x,y1:0,x2:x+1,y2:0});if(R[H-1][x]!=='.')out.push({x1:x,y1:H,x2:x+1,y2:H});}
+  for(let y=0;y<H;y++){if(R[y][0]!=='.')out.push({x1:0,y1:y,x2:0,y2:y+1});if(R[y][W-1]!=='.')out.push({x1:W,y1:y,x2:W,y2:y+1});}
+  return out;}
+
+function renderLevels(){
+  document.querySelectorAll('.lv[data-l]').forEach(b=>b.classList.toggle('on',b.dataset.l===state.level));
+  const list=$('mapList');list.innerHTML='';
+  MAPS.filter(m=>m.level===state.level).forEach((m,i)=>{
+    const b=document.createElement('button');b.className='mc'+(state.map&&state.map.id===m.id?' on':'');
+    b.appendChild(drawThumb(m));
+    const t=document.createElement('div');t.textContent=`${i+1}. ${m.name}`;b.appendChild(t);
+    if(state.best[m.id]){const d=document.createElement('div');d.className='done';d.textContent=`✓ 最少用了 ${state.best[m.id]} 種`;b.appendChild(d);}
+    b.onclick=()=>loadMap(m);list.appendChild(b);
+  });
+}
+function renderPalette(){
+  const p=$('palette');p.innerHTML='';
+  PALETTE.forEach((c,i)=>{const b=document.createElement('button');b.className='sw'+(state.pick===i?' on':'');b.style.background=c.c;b.textContent=c.n;b.setAttribute('aria-label',c.n);
+    b.onclick=()=>{state.pick=i;renderPalette();};p.appendChild(b);});
+  const e=document.createElement('button');e.className='sw eraser'+(state.pick===-1?' on':'');e.textContent='🧽 橡皮擦';
+  e.onclick=()=>{state.pick=-1;renderPalette();};p.appendChild(e);
+}
+
+function loadMap(m){
+  state.map=m;state.g=analyse(m);state.colour={};state.hintRegion=null;
+  if(state.level!==m.level)state.level=m.level;
+  const idx=MAPS.filter(x=>x.level===m.level).indexOf(m)+1;
+  $('mapTitle').textContent=`${LEVELS[m.level]} 第 ${idx} 幅：${m.name}`;
+  setMsg('② 點地圖上的區域著色。用同一種顏色再點一次，可以清除。');
+  renderLevels();drawMap();
+}
+
+function drawMap(){
+  const m=state.map,g=state.g,s=$('map');s.innerHTML='';
+  s.setAttribute('viewBox',`-0.4 -0.4 ${g.W+.8} ${g.H+.8}`);
+  s.setAttribute('width', String(g.W));
+  s.setAttribute('height', String(g.H));
+  s.setAttribute('preserveAspectRatio','xMidYMid meet');
+  s.style.aspectRatio = `${g.W} / ${g.H}`;
+  // 海
+  m.rows.forEach((row,y)=>[...row].forEach((ch,x)=>{if(ch==='.')s.appendChild(el('rect',{x,y,width:1,height:1,fill:'#d0ebff',class:'cell'}));}));
+  // 區域格
+  m.rows.forEach((row,y)=>[...row].forEach((ch,x)=>{
+    if(ch==='.')return;
+    const c=state.colour[ch];
+    const r=el('rect',{x,y,width:1.03,height:1.03,class:'cell','data-r':ch,fill:c!==undefined?PALETTE[c].c:'#ffd8a8'});
+    r.addEventListener('click',()=>tapRegion(ch));
+    s.appendChild(r);
+  }));
+  // 未著色區域加小圓點，方便看出要著色
+  Object.keys(g.adj).forEach(r=>{if(state.colour[r]===undefined){const [cx,cy]=regionCentre(m,r);
+    const d=el('circle',{cx,cy,r:.13,fill:'#c9bfae','pointer-events':'none'});s.appendChild(d);}});
+  // 邊界
+  const lines=el('g',{'pointer-events':'none'});
+  g.edges.concat(outerEdges(m)).forEach(e=>lines.appendChild(el('line',{x1:e.x1,y1:e.y1,x2:e.x2,y2:e.y2,class:'border'})));
+  s.appendChild(lines);
+  // 衝突邊
+  const conf=conflicts();
+  const cg=el('g',{'pointer-events':'none'});
+  g.edges.forEach(e=>{if(e.a!=='.'&&e.b!=='.'&&state.colour[e.a]!==undefined&&state.colour[e.a]===state.colour[e.b])
+    cg.appendChild(el('line',{x1:e.x1,y1:e.y1,x2:e.x2,y2:e.y2,class:'conf'}));});
+  s.appendChild(cg);
+  // 提示高亮
+  if(state.hintRegion){const hg=el('g',{'pointer-events':'none'});
+    m.rows.forEach((row,y)=>[...row].forEach((ch,x)=>{if(ch!==state.hintRegion)return;
+      const nb=[[0,-1,x,y,x+1,y],[0,1,x,y+1,x+1,y+1],[-1,0,x,y,x,y+1],[1,0,x+1,y,x+1,y+1]];
+      nb.forEach(([dx,dy,x1,y1,x2,y2])=>{const yy=y+dy,xx=x+dx;const o=(m.rows[yy]||'')[xx];if(o!==ch)hg.appendChild(el('line',{x1,y1,x2,y2,class:'pulse'}));});}));
+    s.appendChild(hg);}
+  updateStatus(conf);
+}
+function conflicts(){const out=[];const a=state.g.adj;for(const r in a)for(const n of a[r])if(r<n&&state.colour[r]!==undefined&&state.colour[r]===state.colour[n])out.push([r,n]);return out;}
+function usedColours(){return [...new Set(Object.values(state.colour))].sort((p,q)=>p-q);}
+
+function tapRegion(r){
+  state.hintRegion=null;
+  if(state.pick===-1||state.colour[r]===state.pick)delete state.colour[r];
+  else state.colour[r]=state.pick;
+  drawMap();
+  const conf=conflicts(),total=Object.keys(state.g.adj).length,done=Object.keys(state.colour).length;
+  if(conf.length)setMsg('🙂 看看紅色虛線：那條邊兩旁的顏色一樣喔，換一換其中一區吧。','warn');
+  else if(done===total)finish();
+  else setMsg(`很好！還有 ${total-done} 個區域未著色。`);
+}
+
+function updateStatus(conf){
+  const u=usedColours();$('nUsed').textContent=u.length;
+  const d=$('usedDots');d.innerHTML='';u.forEach(i=>{const e=document.createElement('i');e.style.background=PALETTE[i].c;d.appendChild(e);});
+  const total=Object.keys(state.g.adj).length,done=Object.keys(state.colour).length;
+  $('prog').textContent=`已著色 ${done} / ${total} 個區域`+(conf&&conf.length?`　｜　相鄰同色：${conf.length} 處`:'');
+}
+function setMsg(t,cls){const m=$('msg');m.textContent=t;m.className='msg'+(cls?' '+cls:'');}
+
+function finish(){
+  const m=state.map,n=usedColours().length;
+  state.best[m.id]=Math.min(state.best[m.id]||99,n);
+  renderLevels();confetti();
+  let extra;
+  if(n>4)extra=`<p>做得好，全部完成了！🎉</p><p>想再挑戰一下嗎？<b>可以試試用更少的顏色，再完成同一幅地圖嗎？</b></p>`;
+  else if(n===4)extra=`<p>你只用了<b>四種</b>顏色就完成了！👏</p><p>想一想：這幅地圖可以再少一種嗎？還是一定要四種？</p>`;
+  else extra=`<p>你用了 <b>${n}</b> 種就夠了！不是每一幅地圖都需要四種顏色。🌟</p>`;
+  setMsg(`🎉 完成！你用了 ${n} 種顏色。`);
+  const completed=Object.keys(state.best).length;
+  const showThink=completed>=REFLECT_AFTER;
+  if(showThink)showThinkButtons();
+  openCard(`<h2>🎉 完成了！</h2><p>你用了 <span class="big-n">${n}</span> 種顏色完成！</p>${extra}
+   ${showThink&&!state.reflectSeen?'<p style="color:#7048e8">你已完成 '+completed+' 幅地圖，可以按「💭 想一想」回顧一下。</p>':''}
+   <div class="row"><button class="btn clear big" id="cRetry">🔄 再試一次（清除顏色）</button>
+   <button class="btn next big" id="cNext">➡️ 下一幅</button>
+   ${showThink?'<button class="btn think big" id="cThink">💭 想一想</button>':''}</div>`);
+  $('cRetry').onclick=()=>{closeCard();clearMap();};
+  $('cNext').onclick=()=>{closeCard();nextMap();};
+  if(showThink)$('cThink').onclick=()=>{closeCard();openReflect();};
+}
+function showThinkButtons(){$('thinkBtn').classList.remove('hidden');$('thinkTop').classList.remove('hidden');}
+function clearMap(){state.colour={};state.hintRegion=null;drawMap();setMsg('已清除。再試一次吧！可以試試用更少的顏色。');}
+function nextMap(){const i=MAPS.indexOf(state.map);loadMap(MAPS[(i+1)%MAPS.length]);}
+
+function hint(){
+  const conf=conflicts();const a=state.g.adj;
+  if(conf.length){state.hintRegion=conf[0][0];drawMap();setMsg('💡 閃動的區域旁邊，有一條紅色虛線：那兩區顏色一樣。試試把其中一區換色。','hint');return;}
+  const total=Object.keys(a).length,done=Object.keys(state.colour).length;
+  const pool=Object.keys(a).filter(r=>done===total||state.colour[r]===undefined);
+  pool.sort((p,q)=>a[q].size-a[p].size);
+  const r=pool[0];state.hintRegion=r;drawMap();
+  if(done===total){
+    setMsg(`💡 這幅已完成了。想用少一點顏色？找一種只用在很少區域的顏色，看看那些區域可否換成其他已用的顏色。`,'hint');
+  }else{
+    setMsg(`💡 閃動的區域有 ${a[r].size} 個鄰居，鄰居最多。可以先想想它要用甚麼顏色，再著它旁邊的區域。`,'hint');
+  }
+}
+
+/* ---------- 反思（完成 3 幅後解鎖，或老師打開） ---------- */
+function openReflect(){
+  state.reflectSeen=true;
+  const rows=MAPS.filter(m=>state.best[m.id]).map(m=>`<tr><td>${LEVELS[m.level]}</td><td>${m.name}</td><td><b>${state.best[m.id]}</b> 種</td></tr>`).join('');
+  const minUsed=Object.values(state.best).length?Math.min(...Object.values(state.best)):'—';
+  const qs=[
+    {k:'q1',t:'1. 這幾幅地圖中，你最少用過幾種顏色？',o:['1','2','3','4','5 或以上']},
+    {k:'q2',t:'2. 有沒有一幅地圖，你怎樣試都要用到四種顏色？',o:['有','沒有','不肯定']},
+    {k:'q3',t:'3. 你有沒有遇到「一定要用五種或以上」才可以完成的地圖？',o:['有','沒有','不肯定']}
+  ];
+  const ans={};
+  openCard(`<h2>💭 想一想</h2>
+   ${rows?`<table class="t"><tr><th>程度</th><th>地圖</th><th>你最少用了</th></tr>${rows}</table>`:'<p>（還未完成地圖。可以先玩幾幅再回來。）</p>'}
+   ${qs.map(q=>`<div class="q"><div class="t">${q.t}</div><div class="opts">${q.o.map(o=>`<button class="opt" data-k="${q.k}" data-v="${o}">${o}</button>`).join('')}</div><div class="fb" id="fb_${q.k}"></div></div>`).join('')}
+   <div class="row"><button class="btn think big" id="rReveal">🔓 看看數學家發現了甚麼</button></div>
+   <div id="revealBox"></div>
+   <div class="row"><button class="btn next big" id="rClose">回去繼續著色</button></div>`);
+  document.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll(`.opt[data-k=${b.dataset.k}]`).forEach(x=>x.classList.remove('on'));b.classList.add('on');ans[b.dataset.k]=b.dataset.v;
+    const fb=$('fb_'+b.dataset.k);
+    if(b.dataset.k==='q1')fb.textContent=`你的紀錄：最少是 ${minUsed} 種。`;
+    if(b.dataset.k==='q2')fb.textContent=b.dataset.v==='有'?'對！有些地圖真的少一種都不行。':'可以試試「四國相連」或「五瓣花」，看看三種顏色夠不夠。';
+    if(b.dataset.k==='q3')fb.textContent=b.dataset.v==='有'?'真的嗎？回去那一幅，試試用更少顏色，看看能否做到。':'想一想：會不會有一幅地圖，真的需要五種？';
+  });
+  $('rReveal').onclick=()=>{$('revealBox').innerHTML=`<div class="reveal"><p>🧠 <b>數學家已經證明：</b>不論地圖怎樣畫（畫在平面上、每個國家連成一塊），<b>最多用四種顏色就一定夠</b>，可以令相鄰的區域顏色都不同。</p>
+     <p>這個發現叫做<b>「四色定理」</b>。有些地圖 2 種或 3 種就夠，有些一定要 4 種，但<b>從來不需要 5 種</b>。</p>
+     <p>如果你剛才用了五種或以上，回去挑戰用四種或更少吧！</p></div>`;$('rReveal').disabled=true;};
+  $('rClose').onclick=closeCard;
+}
+
+/* ---------- 老師說明 ---------- */
+function openTeacher(){
+  const t=TEST.map(x=>`<tr><td>${LEVELS[x.level]}</td><td>${x.name}</td><td>${x.regions}</td><td><b>${x.computed}</b></td><td>${x.ok?'✅':'❌'}</td></tr>`).join('');
+  openCard(`<div class="teacher"><h2>老師說明</h2>
+  <h3>學習目標</h3><ul><li>對齊第 5 節教案：相鄰＝共邊，只接角不算；發現有些圖三色會卡住，四色就夠。</li><li>理解「相鄰」＝共用一條邊；只接角不算。</li><li>從著色過程中自行發現：有些地圖 2 或 3 種顏色已夠，有些一定要 4 種，但從來不需要超過 4 種（四色定理）。</li><li>培養策略：先處理鄰居多的區域、嘗試減少顏色。</li></ul>
+  <h3>為何不限四色</h3><p>調色盤有 8 種顏色、不設上限。若一開始限定四色，學生只是在「遵守規則」，失去自己發現「四種就夠」的機會。程式會不斷顯示「你現在用了 N 種顏色」，完成後若多於 4 種只會邀請再試用更少顏色，不會判錯。</p>
+  <h3>每幅地圖的著色色數 χ（載入時程式自動驗證）</h3>
+  <table class="t"><tr><th>程度</th><th>地圖</th><th>區域數</th><th>最少顏色 χ</th><th>自測</th></tr>${t}</table>
+  <p>設計重點：「花朵村」中心有 4 個鄰居但 3 色已夠；「四國相連」四區兩兩相鄰（必須 4 色）；「五瓣花」「寶石群島」中心被 5 區圍成一圈（沒有四區兩兩相鄰，但仍需 4 色）；「切切切餅乾」區域多卻只需 2 色。</p>
+  <h3>建議教法（50 分鐘）</h3><ol><li>（5'）只講規則：共邊不同色，接角不算。用「棋盤六國」示範接角。<b>不要一開始講四色定理</b>。</li>
+  <li>（15'）兩人一部 iPad 玩支援／基本層，記錄每幅「用了幾種」。</li>
+  <li>（10'）全班分享：哪幅最少？誰能用更少顏色完成同一幅？哪幅三種總是不夠？</li>
+  <li>（10'）挑戰層：鼓勵先找鄰居最多的區域。</li>
+  <li>（10'）按「💭 想一想」（完成 ${REFLECT_AFTER} 幅後出現，或用下方按鈕打開）回答問題，最後才揭示四色定理。</li></ol>
+  <h3>調難度</h3><ul><li>中下能力：只玩支援層 4 幅，再挑戰「四國相連」。</li><li>能力較高：挑戰層，並要求「用最少顏色」完成並說明為何不能更少。</li><li>網址加 <code>?teacher=1</code> 會直接開啟此頁並顯示「想一想」按鈕。</li></ul>
+  <h3>已知限制</h3><ul><li>地圖以方格組成（為確保相鄰判斷準確），外形較方正。</li><li>進度只存在本頁記憶體，重新整理會清除；不收集任何個人資料，亦不連網。</li><li>顏色以色塊及中文名稱區分，色覺辨認困難的學生可能需同伴協助。</li><li>反思題不評分，只供討論。四色定理的嚴謹證明超出小學程度，只作概念介紹。</li></ul>
+  <div class="row"><button class="btn think big" id="tReflect">💭 打開「想一想」</button><button class="btn big" id="tClose">關閉</button></div></div>`);
+  $('tReflect').onclick=()=>{showThinkButtons();openReflect();};
+  $('tClose').onclick=closeCard;
+}
+
+function openCard(html){$('ovCard').innerHTML=html;$('ov').classList.remove('hidden');$('ovCard').scrollTop=0;}
+function closeCard(){$('ov').classList.add('hidden');}
+function confetti(){const cs=PALETTE.map(p=>p.c);for(let i=0;i<28;i++){const d=document.createElement('div');d.className='confetti';d.style.left=Math.random()*100+'vw';d.style.background=cs[i%cs.length];d.style.animationDelay=Math.random()*.5+'s';document.body.appendChild(d);setTimeout(()=>d.remove(),2600);}}
+
+/* ---------- 綁定 ---------- */
+document.querySelectorAll('.lv[data-l]').forEach(b=>b.onclick=()=>{state.level=b.dataset.l;loadMap(MAPS.find(m=>m.level===state.level));});
+$('hintBtn').onclick=hint;$('clearBtn').onclick=clearMap;$('nextBtn').onclick=nextMap;
+$('thinkBtn').onclick=openReflect;$('thinkTop').onclick=openReflect;$('teacherBtn').onclick=openTeacher;
+$('ov').addEventListener('click',e=>{if(e.target.id==='ov')closeCard();});
+renderPalette();loadMap(MAPS[0]);
+if(/[?&]teacher=1/.test(location.search)){showThinkButtons();openTeacher();}
+</script>
+</body>
+</html>

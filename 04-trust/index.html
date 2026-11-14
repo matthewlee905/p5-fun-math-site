@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>第 4 節　信任的進化</title>
+<link rel="stylesheet" href="../css/common.css">
+<style>
+.pay{width:100%;border-collapse:collapse;font-size:18px;margin:8px 0}
+.pay th,.pay td{border:3px solid #e9d5ff;padding:10px;text-align:center}
+.pay th{background:#f3e8ff}
+.pay td.cell{background:#fff;min-width:120px}
+.pay .hi{background:#ede9fe;font-weight:900}
+.pay .best{box-shadow:inset 0 0 0 3px #7c3aed}
+.scoreline{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin:10px 0}
+.sc{flex:1;min-width:140px;background:#faf5ff;border-radius:18px;padding:12px;text-align:center}
+.sc .n{font-size:40px;font-weight:900;color:#6d28d9}
+.choice-btns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.choice-btns button{min-height:88px;border-radius:22px;font-size:24px;font-weight:900;border:4px solid transparent}
+.choice-btns .share{background:#d1fae5;border-color:#059669}
+.choice-btns .keep{background:#ffedd5;border-color:#c2410c}
+.cover{background:#4c1d95;color:#fff;border-radius:24px;padding:28px 16px;text-align:center;min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.cover h2{color:#fff;font-size:28px}
+.reveal-box{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.reveal-box .p{background:#fff;border-radius:18px;padding:14px;text-align:center;border:3px solid #e9d5ff}
+.hist td{font-size:17px}
+.edit-pay input{max-width:80px;min-height:44px;font-size:18px;text-align:center;display:inline-block;width:80px}
+</style>
+</head>
+<body>
+<noscript><div class="noscript">請用 Safari 打開這個檔案（不要只在對話預覽裡觀看）。本遊戲需要瀏覽器執行。</div></noscript>
+<div class="app">
+  <div class="topbar">
+    <a class="back" href="../index.html">← 返回總覽</a>
+    <div class="brand"><h1><span class="lesson">第 4 節</span>信任的進化</h1></div>
+  </div>
+  <div class="mission">
+    <div class="lab">任務目的</div>
+    <p>用「分享材料／獨佔」玩簡單的同時選擇遊戲，感受「對自己眼前最好，兩人加起來未必最好」；可先單輪再連玩數輪。</p>
+  </div>
+  <div class="levels">
+    <button class="lv on" data-l="support">🌱 支援（先 1 輪，可改 3 輪）</button>
+    <button class="lv" data-l="basic">⭐ 基本（1 輪＋再連 5 輪）</button>
+    <button class="lv" data-l="challenge">🔥 挑戰（可改得分表／先口頭約定）</button>
+  </div>
+
+  <div class="panel">
+    <h2>四格得分表（材料分數）</h2>
+    <p>兩人同時選擇，不能先看對方。這是數學遊戲，不是找出誰比較壞。</p>
+    <table class="pay" id="payTable"></table>
+    <p class="msg" id="paySum">兩人加起來：雙方都分享＝6 分；一方獨佔＝5 分；雙方都獨佔＝2 分。</p>
+  </div>
+
+  <div class="panel" id="playPanel"></div>
+
+  <div class="panel">
+    <h2>紀錄（不設個人戰績榜）</h2>
+    <table class="t hist" id="hist"><thead><tr><th>輪</th><th>同學 A</th><th>同學 B</th><th>A 得分</th><th>B 得分</th><th>兩人合計</th></tr></thead><tbody></tbody></table>
+    <div class="scoreline">
+      <div class="sc">同學 A 累計<div class="n" id="totA">0</div></div>
+      <div class="sc">同學 B 累計<div class="n" id="totB">0</div></div>
+      <div class="sc">兩人合計<div class="n" id="totS">0</div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>活動後想一想</h3>
+    <p class="msg">只玩一輪時，為什麼有人覺得獨佔比較安全？五輪之後，對方上一輪有沒有影響你？兩人加起來，哪一種最高？</p>
+    <div class="btn-row"><button class="btn btn-yellow" id="reflectBtn">✏️ 寫一句反思</button></div>
+    <div id="reflectOut" class="msg hidden" style="margin-top:8px"></div>
+  </div>
+  <footer class="teacher-entry"><button class="tbtn" id="teacherBtn">老師說明</button></footer>
+</div>
+<div class="overlay hidden" id="ov"><div class="card" id="ovCard"></div></div>
+<script src="../js/common.js"></script>
+<script>
+/* 預設報酬：雙方分享各 3；一方獨佔 5／0；雙方獨佔各 1。不渲染犯罪。 */
+const state={
+  level:"basic",
+  pay:{ss:[3,3],sk:[0,5],ks:[5,0],kk:[1,1]},
+  phase:"ready", // ready, a, cover, b, reveal
+  pickA:null,pickB:null,hist:[],
+  targetRounds:6, // 1 + 5 for basic
+  agreed:false
+};
+
+function payoff(a,b){
+  const key=(a==="share"?"s":"k")+(b==="share"?"s":"k");
+  return state.pay[key];
+}
+function lab(v){return v==="share"?"分享材料":"獨佔";}
+
+function renderPay(){
+  const p=state.pay;
+  $("payTable").innerHTML=`<tr><th></th><th>同學 B 分享材料</th><th>同學 B 獨佔</th></tr>
+    <tr><th>同學 A 分享材料</th><td class="cell ${/*ss*/""}">A 得 <b>${p.ss[0]}</b>　B 得 <b>${p.ss[1]}</b><br>合計 ${p.ss[0]+p.ss[1]}</td>
+    <td class="cell">A 得 <b>${p.sk[0]}</b>　B 得 <b>${p.sk[1]}</b><br>合計 ${p.sk[0]+p.sk[1]}</td></tr>
+    <tr><th>同學 A 獨佔</th><td class="cell">A 得 <b>${p.ks[0]}</b>　B 得 <b>${p.ks[1]}</b><br>合計 ${p.ks[0]+p.ks[1]}</td>
+    <td class="cell">A 得 <b>${p.kk[0]}</b>　B 得 <b>${p.kk[1]}</b><br>合計 ${p.kk[0]+p.kk[1]}</td></tr>`;
+  $("paySum").textContent=`兩人加起來：雙方都分享＝${p.ss[0]+p.ss[1]} 分；一分享一獨佔＝${p.sk[0]+p.sk[1]} 分；雙方都獨佔＝${p.kk[0]+p.kk[1]} 分。`;
+}
+
+function renderHist(){
+  const tb=$("hist").querySelector("tbody");tb.innerHTML="";
+  let a=0,b=0;
+  state.hist.forEach((h,i)=>{
+    a+=h.sa;b+=h.sb;
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${i+1}</td><td>${lab(h.a)}</td><td>${lab(h.b)}</td><td>${h.sa}</td><td>${h.sb}</td><td>${h.sa+h.sb}</td>`;
+    tb.appendChild(tr);
+  });
+  $("totA").textContent=a;$("totB").textContent=b;$("totS").textContent=a+b;
+}
+
+function playHTML(){
+  const round=state.hist.length+1;
+  const left=state.targetRounds-state.hist.length;
+  if(state.phase==="ready"){
+    return `<h2>第 ${round} 輪${state.targetRounds?`　（還可玩 ${left} 輪）`:""}</h2>
+      <p>請同學 B 先轉開臉，或用書／手遮住螢幕。同學 A 選完後，選擇會被收起，再輪到同學 B。</p>
+      ${state.level==="challenge"?`<p><label><input type="checkbox" id="agreed" ${state.agreed?"checked":""}> 我們先口頭約定都分享（但仍須同時選擇，不能保證對方一定遵守）</label></p>`:""}
+      <div class="btn-row"><button class="btn btn-purple" id="startA">同學 A 開始選擇</button>
+      <button class="btn" id="resetH">清空紀錄，從頭</button></div>
+      ${state.level==="support"?`<div class="btn-row"><button class="btn btn-ghost" id="to3">改為連玩 3 輪</button></div>`:""}
+      ${state.level==="challenge"?`<div class="btn-row"><button class="btn btn-ghost" id="editPay">改得分表再玩（挑戰）</button></div>`:""}`;
+  }
+  if(state.phase==="a"||state.phase==="b"){
+    const who=state.phase==="a"?"同學 A":"同學 B";
+    const other=state.phase==="a"?"同學 B":"同學 A";
+    return `<h2>${who}，請選擇</h2>
+      <p>${other} 請不要看螢幕。</p>
+      <div class="choice-btns">
+        <button class="share" id="pickShare">👐 分享材料</button>
+        <button class="keep" id="pickKeep">📦 獨佔</button>
+      </div>`;
+  }
+  if(state.phase==="cover"){
+    return `<div class="cover"><h2>選擇已收好</h2><p>請把 iPad 交給同學 B。同學 A 不要說出自己選了什麼。</p>
+      <div class="btn-row"><button class="btn btn-yellow" id="startB">同學 B 開始選擇</button></div></div>`;
+  }
+  if(state.phase==="reveal"){
+    const [sa,sb]=payoff(state.pickA,state.pickB);
+    return `<h2>一齊揭曉第 ${state.hist.length} 輪</h2>
+      <div class="reveal-box">
+        <div class="p"><div>同學 A</div><div style="font-size:28px;font-weight:900">${lab(state.pickA)}</div><div>得到 ${sa} 分</div></div>
+        <div class="p"><div>同學 B</div><div style="font-size:28px;font-weight:900">${lab(state.pickB)}</div><div>得到 ${sb} 分</div></div>
+      </div>
+      <p class="msg">這一輪兩人合計 ${sa+sb} 分。請對照得分表：如果兩人都分享，合計會是多少？</p>
+      <div class="btn-row">
+        ${state.hist.length<state.targetRounds?`<button class="btn btn-purple" id="again">下一輪（仍要同時選擇）</button>`:`<button class="btn btn-green" id="again">再加輪（可選）</button>`}
+        <button class="btn" id="stop">先停在這裏討論</button>
+      </div>`;
+  }
+  return "";
+}
+
+function render(){
+  renderPay();
+  $("playPanel").innerHTML=playHTML();
+  renderHist();
+  bindPlay();
+}
+function bindPlay(){
+  if($("startA"))$("startA").onclick=()=>{state.phase="a";state.pickA=state.pickB=null;render();};
+  if($("startB"))$("startB").onclick=()=>{state.phase="b";render();};
+  if($("pickShare"))$("pickShare").onclick=()=>choose("share");
+  if($("pickKeep"))$("pickKeep").onclick=()=>choose("keep");
+  if($("again"))$("again").onclick=()=>{state.phase="ready";render();};
+  if($("stop"))$("stop").onclick=()=>{state.phase="ready";render();$("playPanel").insertAdjacentHTML("beforeend",`<p class="msg hint">可以先看紀錄，討論有沒有人改主意，不要公開比較「誰獨佔最多」。</p>`);};
+  if($("resetH"))$("resetH").onclick=()=>{state.hist=[];state.phase="ready";render();};
+  if($("agreed"))$("agreed").onchange=()=>{state.agreed=$("agreed").checked;};
+  if($("editPay"))$("editPay").onclick=openEditPay;
+  if($("to3"))$("to3").onclick=()=>{state.targetRounds=3;render();};
+}
+function choose(v){
+  if(state.phase==="a"){state.pickA=v;state.phase="cover";render();}
+  else if(state.phase==="b"){
+    state.pickB=v;
+    const [sa,sb]=payoff(state.pickA,state.pickB);
+    state.hist.push({a:state.pickA,b:state.pickB,sa,sb});
+    state.phase="reveal";render();
+  }
+}
+
+function openEditPay(){
+  const p=state.pay;
+  openCard(`<h2>改得分表（挑戰）</h2>
+    <p>可以讓「雙方分享」更划算，看看選擇會不會變。請用小整數。改完後清空本局紀錄再玩。</p>
+    <p>雙方都分享：各得 <input id="e1" type="number" value="${p.ss[0]}" min="0" max="20"> 分</p>
+    <p>一人獨佔、一人分享：獨佔者 <input id="e2" type="number" value="${p.ks[0]}" min="0" max="20">，分享者 <input id="e3" type="number" value="${p.sk[0]}" min="0" max="20"></p>
+    <p>雙方都獨佔：各得 <input id="e4" type="number" value="${p.kk[0]}" min="0" max="20"> 分</p>
+    <div class="btn-row"><button class="btn btn-primary" id="okP">使用新表</button>
+    <button class="btn" id="defP">恢復預設</button>
+    <button class="btn" id="noP">取消</button></div>`);
+  $("okP").onclick=()=>{
+    const ss=+$("e1").value,k=+$("e2").value,s=+$("e3").value,kk=+$("e4").value;
+    state.pay={ss:[ss,ss],sk:[s,k],ks:[k,s],kk:[kk,kk]};
+    state.hist=[];state.phase="ready";closeCard();render();
+  };
+  $("defP").onclick=()=>{state.pay={ss:[3,3],sk:[0,5],ks:[5,0],kk:[1,1]};state.hist=[];state.phase="ready";closeCard();render();};
+  $("noP").onclick=closeCard;
+}
+
+function setLevel(l){
+  state.level=l;
+  document.querySelectorAll(".lv").forEach(x=>x.classList.toggle("on",x.dataset.l===l));
+  if(l==="support") state.targetRounds=1;
+  else if(l==="basic") state.targetRounds=6;
+  else state.targetRounds=5;
+  state.phase="ready";render();
+}
+document.querySelectorAll(".lv").forEach(b=>b.onclick=()=>setLevel(b.dataset.l));
+
+$("teacherBtn").onclick=()=>{
+  openCard(`<div class="teacher"><h2>老師說明　第 4 節</h2>
+  <h3>學習目標</h3>
+  <ul><li>讀懂四格得分表，完成同時選擇。</li>
+  <li>感受：對單人眼前似乎最好的選擇（獨佔），若雙方都這樣做，結果比雙方分享更差。</li>
+  <li>多輪之後選擇可能改變。不引入納什均衡或公式。</li></ul>
+  <h3>課堂節奏</h3>
+  <p>支援：先 1 輪，可改為 3 輪（可在基本層改想法，或玩完 1 輪後按「再加輪」）。基本：1 輪＋連玩 5 輪。挑戰：可先口頭約定、或略改得分表。</p>
+  <p>本頁只做前段對局，沒有錦標賽或演化長篇。不設個人戰績榜，討論時不要點名誰獨佔最多。</p>
+  <p>同機兩人各自按藏選擇，兩人都選完才一起揭曉。</p>
+  <div class="btn-row"><button class="btn" id="tClose">關閉</button></div></div>`);
+  $("tClose").onclick=closeCard;
+};
+$("reflectBtn").onclick=()=>{
+  openCard(`<h2>我原本以為……</h2>
+    <label class="lab">我原本以為</label><input id="r1" type="text" maxlength="80" autocomplete="off">
+    <label class="lab">現在發現</label><input id="r2" type="text" maxlength="80" autocomplete="off">
+    <label class="lab">因為</label><input id="r3" type="text" maxlength="80" autocomplete="off">
+    <div class="btn-row"><button class="btn btn-primary" id="rOk">完成</button><button class="btn" id="rNo">取消</button></div>`);
+  $("rOk").onclick=()=>{$("reflectOut").classList.remove("hidden");$("reflectOut").textContent=`我原本以為${$("r1").value}，現在發現${$("r2").value}，因為${$("r3").value}。`;closeCard();};
+  $("rNo").onclick=closeCard;
+};
+setLevel("basic");
+if(isTeacherMode()) $("teacherBtn").click();
+
+(function selfTest(){
+  const bak=state.pay;
+  const t=[];
+  function chk(a,b,ea,eb){const r=payoff(a,b);if(r[0]!==ea||r[1]!==eb) t.push({a,b,r,ea,eb});}
+  chk("share","share",3,3);chk("share","keep",0,5);chk("keep","share",5,0);chk("keep","keep",1,1);
+  if(t.length) console.error("得分表自測失敗",t); else console.log("信任遊戲得分表自測通過");
+})();
+</script>
+</body>
+</html>
