@@ -21,6 +21,9 @@
 .done-list{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 .done-list span{background:#fff;border-radius:999px;padding:6px 10px;border:2px solid #e7d3ae;font-weight:700}
 .done-list span.ok{background:#d1fae5;border-color:#059669}
+.hint-done{font-size:18px;font-weight:700;color:#4b5563;margin:8px 0;align-self:center}
+.count-rule{font-size:19px;line-height:1.6;font-weight:700;margin:8px 0;background:#eff6ff;border:2px solid #93c5fd;border-radius:14px;padding:10px 12px}
+.mission .count-rule{margin:8px 0 0}
 </style>
 </head>
 <body>
@@ -33,6 +36,8 @@
   <div class="mission">
     <div class="lab">任務目的</div>
     <p>根據陳述判斷誰是老實人（永遠說真話）、誰是大話王（永遠說假話）；先假設再檢查有沒有說不通。</p>
+    <div class="lab">怎樣玩</div>
+    <p class="count-rule">每個人可能是老實人，也可能是大話王；人數沒有限制，可以全部都是老實人，也可以全部都是大話王。</p>
   </div>
   <div class="levels">
     <button class="lv on" data-l="support">🌱 支援（一人一句）</button>
@@ -44,26 +49,27 @@
   <footer class="teacher-entry"><button class="tbtn" id="teacherBtn">老師說明</button></footer>
 </div>
 <div class="overlay hidden" id="ov"><div class="card" id="ovCard"></div></div>
+
 <script src="../js/common.js"></script>
 <script>
-/* 題目均以窮舉確認只有一組答案。hints 只引導假設，不直接說出身份。 */
+/* 題目均以陳述的可計算模型推導提示、回饋與答案。hints 只引導假設，不直接說出全題答案。 */
 const PUZZLES=[
   {id:"t0",level:"support",kind:"guide",title:"導引：先走完兩條假設",
     people:[{id:"a",name:"小安",said:"我是大話王。"}],
-    sol:null, // 悖論：兩種假設都說不通
+    sol:null,
     guide:true},
   {id:"s1",level:"support",title:"一人一句",
     people:[{id:"a",name:"小安",said:"一個星期有七天。"}],
-    sol:{a:"knight"}, fact:true},
+    sol:{a:"knight"}},
   {id:"s2",level:"support",title:"一人一句",
     people:[{id:"a",name:"小樂",said:"三角形有四條邊。"}],
-    sol:{a:"knave"}, fact:true},
+    sol:{a:"knave"}},
   {id:"s3",level:"support",title:"一人一句",
     people:[{id:"a",name:"小晴",said:"香港在南極。"}],
-    sol:{a:"knave"}, fact:true},
+    sol:{a:"knave"}},
   {id:"s4",level:"support",title:"一人一句",
     people:[{id:"a",name:"小天",said:"一天有二十四小時。"}],
-    sol:{a:"knight"}, fact:true},
+    sol:{a:"knight"}},
   {id:"b1",level:"basic",title:"兩人題（一人說話）",
     people:[{id:"a",name:"小明",said:"我們兩個都是大話王。"},{id:"b",name:"小華",said:null}],
     sol:{a:"knave",b:"knight"}},
@@ -89,21 +95,291 @@ const PUZZLES=[
 
 const state={level:"support",id:"t0",mark:{},hint:0,best:{},create:null};
 const LAB={knight:"老實人",knave:"大話王"};
+const COUNT_RULE="每個人可能是老實人，也可能是大話王；人數沒有限制，可以全部都是老實人，也可以全部都是大話王。";
+function countRuleHTML(){return `<p class="count-rule">${COUNT_RULE}</p>`;}
 
 function listForLevel(){return PUZZLES.filter(p=>p.level===state.level);}
 function cur(){return PUZZLES.find(p=>p.id===state.id)||listForLevel()[0];}
 
-function uniqueSol(people,pred){
-  /* pred(assign) returns whether statements consistent. Used by create-a-puzzle. */
-  const ids=people.map(p=>p.id);
-  const sols=[];
-  const rec=function(i,as){
-    if(i===ids.length){if(pred(as)) sols.push(Object.assign({},as));return;}
+function parseClaim(said, speaker, people){
+  if(!said) return null;
+  const s=String(said).trim();
+  if(s==="我是大話王。"||s==="我是大話王") return {type:"self-knave"};
+  if(s==="我是老實人。"||s==="我是老實人") return {type:"self-knight"};
+  if(/都是大話王/.test(s)) return {type:"all-knave"};
+  if(/都是老實人/.test(s)) return {type:"all-knight"};
+  if(/同一種人/.test(s)) return {type:"same"};
+  if(/兩種不同/.test(s)) return {type:"diff"};
+  const m=s.match(/^(.+?)是(老實人|大話王)。$/);
+  if(m && m[1]!=="我"){
+    const who=people.find(x=>x.name===m[1]);
+    if(!who) return {type:"unknown"};
+    return {type:m[2]==="老實人"?"is-knight":"is-knave", whoId:who.id, whoName:who.name};
+  }
+  if(/一個星期有七天|一天有二十四小時/.test(s)) return {type:"fact", value:true};
+  if(/三角形有四條邊|香港在南極/.test(s)) return {type:"fact", value:false};
+  return {type:"unknown"};
+}
+function claimOf(person, people){return parseClaim(person.said, person, people);}
+
+function evalClaim(claim, as, people){
+  if(!claim) return null;
+  switch(claim.type){
+    case "self-knave": return as[claim.speakerId]==="knave";
+    case "self-knight": return as[claim.speakerId]==="knight";
+    case "all-knave": return people.every(x=>as[x.id]==="knave");
+    case "all-knight": return people.every(x=>as[x.id]==="knight");
+    case "same": return as[people[0].id]===as[people[1].id];
+    case "diff": return as[people[0].id]!==as[people[1].id];
+    case "is-knight": return as[claim.whoId]==="knight";
+    case "is-knave": return as[claim.whoId]==="knave";
+    case "fact": return !!claim.value;
+    default: return null;
+  }
+}
+function withSpeaker(claim, person){
+  if(!claim) return null;
+  const c=Object.assign({},claim);
+  c.speakerId=person.id;
+  c.speakerName=person.name;
+  return c;
+}
+function stmtContent(person, as, people){
+  const c=withSpeaker(claimOf(person, people), person);
+  return evalClaim(c, as, people);
+}
+function speakerFits(person, as, people){
+  if(!person.said) return true;
+  const content=stmtContent(person, as, people);
+  if(content===null) return false;
+  return as[person.id]==="knight"?content:!content;
+}
+function isConsistent(p, as){
+  return p.people.every(person=>speakerFits(person, as, p.people));
+}
+function allAssignments(people){
+  const ids=people.map(x=>x.id), out=[];
+  const rec=(i,as)=>{
+    if(i===ids.length){out.push(Object.assign({},as));return;}
     as[ids[i]]="knight";rec(i+1,as);
     as[ids[i]]="knave";rec(i+1,as);
   };
-  rec(0,{});return sols;
+  rec(0,{});return out;
 }
+function consistentAssignments(p){
+  return allAssignments(p.people).filter(as=>isConsistent(p, as));
+}
+function uniqueSol(people, pred){
+  return allAssignments(people).filter(pred);
+}
+function assumptionPossible(p, id, type){
+  return consistentAssignments(p).some(as=>as[id]===type);
+}
+function selfContradictory(p, person, type){
+  if(!person.said) return false;
+  const required=(type==="knight");
+  return allAssignments(p.people)
+    .filter(as=>as[person.id]===type)
+    .every(as=>stmtContent(person, as, p.people)!==required);
+}
+function claimMentionsSelf(claim, person){
+  if(!claim) return false;
+  if(claim.type==="self-knave"||claim.type==="self-knight"||claim.type==="all-knave"||claim.type==="all-knight") return true;
+  if((claim.type==="is-knave"||claim.type==="is-knight")&&claim.whoId===person.id) return true;
+  return false;
+}
+function contentWhenTrue(claim, person){
+  switch(claim&&claim.type){
+    case "self-knave": return person.name+"是大話王";
+    case "self-knight": return person.name+"是老實人";
+    case "all-knave": return "兩個人都是大話王";
+    case "all-knight": return "兩個人都是老實人";
+    case "same": return "兩個人是同一種人";
+    case "diff": return "兩個人是兩種不同的人";
+    case "is-knight": return claim.whoName+"是老實人";
+    case "is-knave": return claim.whoName+"是大話王";
+    default: return "這句話的內容成立";
+  }
+}
+function contentWhenFalse(claim, person){
+  switch(claim&&claim.type){
+    case "self-knave": return person.name+"不是大話王，也就是老實人";
+    case "self-knight": return person.name+"不是老實人，也就是大話王";
+    case "all-knave": return "不是兩個人都是大話王，也就是至少有一個人是老實人";
+    case "all-knight": return "不是兩個人都是老實人，也就是至少有一個人是大話王";
+    case "same": return "兩個人不是同一種人";
+    case "diff": return "兩個人不是不同種人，也就是同一種人";
+    case "is-knight": return claim.whoName+"不是老實人，也就是大話王";
+    case "is-knave": return claim.whoName+"不是大話王，也就是老實人";
+    default: return "這句話的內容不成立";
+  }
+}
+
+function assumeHint(p, person, type){
+  const name=person.name;
+  const said=person.said;
+  const claim=withSpeaker(claimOf(person, p.people), person);
+  const possible=assumptionPossible(p, person.id, type);
+  const selfContra=selfContradictory(p, person, type);
+  const tag=possible?"possible":"contradictory";
+  const first=type==="knight"?"先":"再";
+  const role=LAB[type];
+  const must=type==="knight"?"必須是真的":"必須是假的";
+  const preface=`${first}假設${name}是${role}。${role}永遠說${type==="knight"?"真":"假"}話，所以「${said}」${must}。`;
+  let text;
+  if(claim && claim.type==="fact"){
+    if(type==="knight"){
+      text=selfContra
+        ?`${preface}請看看這句話在現實裏說得通嗎？如果說不通，這條假設就說不通。`
+        :`${preface}請看看這句話在現實裏說得通嗎？如果說得通，這條假設就還沒有矛盾。`;
+    }else{
+      text=selfContra
+        ?`${preface}請看看這句話在現實裏是不是不正確。如果它其實是對的，這條假設就說不通。`
+        :`${preface}請看看這句話在現實裏是不是不正確。哪一條假設說不通？`;
+    }
+  }else if(type==="knight" && selfContra && claimMentionsSelf(claim, person)){
+    text=`${preface}請看看這句話說了${name}自己是什麼，和「${name}是老實人」這個假設一致嗎？如果已經不一致，這條假設就說不通。`;
+  }else if(type==="knave" && selfContra && claim && claim.type==="self-knave"){
+    text=`${preface}可是如果${name}真的是大話王，「${said}」就會是真話。大話王不能說真話，所以這條假設也說不通。`;
+  }else if(type==="knight"){
+    const imply=claim?`也就是${contentWhenTrue(claim, person)}。`:"";
+    text=possible
+      ?`${preface}${imply}請再檢查其他話（如果有的話）能不能和這個假設同時成立。`
+      :`${preface}${imply}請再把其他人說的話一起檢查：那句話的真假，能不能和身份同時成立？如果已經不一致，這條假設就說不通。`;
+  }else{
+    const imply=claim?`這句話若是假的，就是說${contentWhenFalse(claim, person)}。`:"";
+    const otherSpeaks=p.people.some(x=>x.id!==person.id && x.said);
+    text=possible
+      ?`${preface}${imply}在這個假設下，請想想另一人可以是什麼${otherSpeaks?"，再檢查其他話能不能同時成立":""}。`
+      :`${preface}${imply}請再把其他人說的話一起檢查：那句話的真假，能不能和身份同時成立？如果已經不一致，這條假設就說不通。`;
+  }
+  return {text, assumeId:person.id, assumeType:type, claim:tag};
+}
+
+function buildHintSteps(p){
+  if(p.guide){
+    const A=p.people[0];
+    const h1=assumeHint(p, A, "knight");
+    const h2=assumeHint(p, A, "knave");
+    const h3={
+      text:"結論：沒有人會說「我是大話王」。這題不是要你選出一種身份，而是看見「說不通」的力量。",
+      assumeId:null, assumeType:null, claim:"none"
+    };
+    return [h1,h2,h3];
+  }
+  const speaker=p.people.find(x=>x.said)||p.people[0];
+  const steps=[assumeHint(p, speaker, "knight"), assumeHint(p, speaker, "knave")];
+  const other=p.people.find(x=>x.id!==speaker.id && x.said);
+  if(other){
+    steps.push({
+      text:`記着：${other.name}說「${other.said}」。無論你假設誰是老實人，都要檢查這句話的真假，能不能和${other.name}的身份同時成立。`,
+      assumeId:null, assumeType:null, claim:"none"
+    });
+  }
+  return steps;
+}
+function hintSteps(p){return buildHintSteps(p).map(s=>s.text);}
+function hintText(p,n){
+  const steps=hintSteps(p);
+  if(n<1||n>steps.length) return "";
+  return steps[n-1];
+}
+function mismatchFeedback(p, as){
+  const bits=[];
+  for(const person of p.people){
+    if(!person.said) continue;
+    const content=stmtContent(person, as, p.people);
+    const typ=as[person.id];
+    if(typ==="knight" && content===false){
+      if(claimOf(person, p.people).type==="fact"){
+        bits.push(`在你的選擇下，${person.name}是老實人，應該說真話，可是「${person.said}」這句話的內容並不正確。`);
+      }else{
+        bits.push(`在你的選擇下，${person.name}是老實人，應該說真話，可是「${person.said}」並不成立。`);
+      }
+    }else if(typ==="knave" && content===true){
+      if(claimOf(person, p.people).type==="fact"){
+        bits.push(`在你的選擇下，${person.name}是大話王，應該說假話，可是「${person.said}」這句話的內容是對的。`);
+      }else{
+        bits.push(`在你的選擇下，${person.name}是大話王，應該說假話，可是「${person.said}」卻是成立的。`);
+      }
+    }
+  }
+  if(!bits.length) return "這個組合還有說不通的地方。請再檢查每句話的真假，能不能和說話者的身份同時成立。這裡不會公布答案。";
+  return bits.join("")+"這裡不會公布答案。";
+}
+
+function claimFromCreatorKind(kind, me, ot, people){
+  if(!kind||kind==="silent") return null;
+  if(kind==="both-knave") return {type:"all-knave"};
+  if(kind==="both-knight") return {type:"all-knight"};
+  if(kind==="same") return {type:"same"};
+  if(kind==="diff") return {type:"diff"};
+  if(kind==="b-knight"||kind==="a-knight") return {type:"is-knight", whoId:ot, whoName:people.find(x=>x.id===ot).name};
+  if(kind==="b-knave"||kind==="a-knave") return {type:"is-knave", whoId:ot, whoName:people.find(x=>x.id===ot).name};
+  return {type:"unknown"};
+}
+function creatorConsistent(kindA, kindB, as, people){
+  const A=people[0], B=people[1];
+  const cA=withSpeaker(claimFromCreatorKind(kindA, A.id, B.id, people), A);
+  const cB=kindB==="silent"?null:withSpeaker(claimFromCreatorKind(kindB, B.id, A.id, people), B);
+  const fit=(person, claim)=>{
+    if(!claim) return true;
+    const content=evalClaim(claim, as, people);
+    if(content===null) return false;
+    return as[person.id]==="knight"?content:!content;
+  };
+  return fit(A,cA)&&fit(B,cB);
+}
+
+function runLogicAudit(){
+  const fails=[];
+  const per=[];
+  PUZZLES.forEach(p=>{
+    for(const person of p.people){
+      if(!person.said) continue;
+      const c=claimOf(person, p.people);
+      if(!c||c.type==="unknown") fails.push({id:p.id, issue:"陳述無法解析", said:person.said});
+    }
+    const sols=consistentAssignments(p);
+    if(p.guide){
+      if(sols.length!==0) fails.push({id:p.id, issue:"導引題應無解", sols});
+      per.push({id:p.id, sols:0, ok:sols.length===0});
+    }else{
+      const ids=p.people.map(x=>x.id);
+      const uniq=sols.length===1 && p.sol && ids.every(id=>sols[0][id]===p.sol[id]);
+      if(!uniq) fails.push({id:p.id, issue:"答案不唯一或與設定不符", sols, declared:p.sol});
+      per.push({id:p.id, sols:sols.length, ok:uniq, sol:sols[0]||null});
+    }
+    const allAs=allAssignments(p.people);
+    if(!allAs.some(as=>p.people.every(x=>as[x.id]==="knight"))||!allAs.some(as=>p.people.every(x=>as[x.id]==="knave"))){
+      fails.push({id:p.id, issue:"窮舉未包含全部老實人或全部大話王的組合"});
+    }
+    const numBias=/一個老實人.{0,6}一個大話王|一個大話王.{0,6}一個老實人|一定是不同|必須一[個位]老實人|必須一[個位]大話王|一定要一[個位]老實人|一正一邪/;
+    const texts=buildHintSteps(p).map(h=>h.text);
+    if(!p.guide){
+      allAs.filter(as=>!isConsistent(p,as)).forEach(as=>texts.push(mismatchFeedback(p,as)));
+    }
+    texts.forEach((tx,i)=>{
+      if(numBias.test(tx)) fails.push({id:p.id, issue:"提示或回饋暗示固定人數組合", step:i+1, text:tx});
+    });
+    buildHintSteps(p).forEach((h,i)=>{
+      if(h.claim==="none"||!h.assumeId) return;
+      const possible=assumptionPossible(p, h.assumeId, h.assumeType);
+      if(h.claim==="contradictory" && possible) fails.push({id:p.id, issue:"提示聲稱假設說不通，但窮舉仍有解", step:i+1, assume:h.assumeType});
+      if(h.claim==="possible" && !possible) fails.push({id:p.id, issue:"提示把假設當成仍可能，但窮舉無解", step:i+1, assume:h.assumeType});
+      const bad=["想一想","騎士","無賴","第1課","第2課","第3課"];
+      if(bad.some(w=>h.text.includes(w))) fails.push({id:p.id, issue:"提示含禁用詞", step:i+1});
+    });
+  });
+  const ok=!fails.length;
+  const summary=ok
+    ?"導引題無解；其餘 "+PUZZLES.filter(p=>!p.guide).length+" 題答案唯一且與設定相符；提示中關於假設是否矛盾的敘述與窮舉結果一致。"
+    :"發現 "+fails.length+" 項問題。";
+  if(ok) console.log("老實人邏輯驗證全部通過", summary);
+  else console.error("老實人邏輯驗證失敗", fails);
+  return {ok, fails, per, summary};
+}
+const logicReport=runLogicAudit();
 
 function renderList(){
   const el=$("doneList");el.innerHTML="";
@@ -137,24 +413,37 @@ function personCard(p){
   </div>`;
 }
 
-function hintText(p,n){
-  const A=p.people[0],B=p.people[1];
-  if(p.guide){
-    return [
-      "先假設小安是老實人。老實人永遠說真話，那麼「我是大話王」就是真的——可是老實人不可能是大話王。這條假設說不通。",
-      "再假設小安是大話王。大話王永遠說假話，那麼「我是大話王」會變成真話——大話王也不能說真話。兩條假設都說不通。",
-      "結論：沒有人會說「我是大話王」。這題不是要你選出一種身份，而是看見「說不通」的力量。"
-    ][Math.min(n-1,2)];
+function syncHintUI(p){
+  const btn=$("hintBtn");
+  if(!btn) return;
+  const done=state.hint>=hintSteps(p).length;
+  btn.disabled=done;
+  btn.classList.toggle("hidden",done);
+  let note=$("hintDone");
+  if(done){
+    if(!note){
+      note=document.createElement("p");
+      note.id="hintDone";
+      note.className="hint-done";
+      note.textContent="提示已全部顯示";
+      btn.parentNode.appendChild(note);
+    }
+  }else if(note){
+    note.remove();
   }
-  if(p.people.length===1){
-    return n===1?`先假設 ${A.name} 是老實人。那麼這句話必須是真的。這句話在現實裏說得通嗎？`:`再假設 ${A.name} 是大話王。那麼這句話必須是假的。哪一條假設說不通？`;
+}
+function showRevealedHints(p){
+  const steps=hintSteps(p);
+  const n=Math.min(state.hint,steps.length);
+  if($("guideSteps")){
+    $("guideSteps").innerHTML="";
+    for(let i=0;i<n;i++){
+      const d=document.createElement("p");d.className="msg hint";d.textContent=steps[i];$("guideSteps").appendChild(d);
+    }
+  }else if(n>0&&$("fb")){
+    $("fb").className="msg hint";$("fb").textContent=steps[n-1];
   }
-  const lines=[
-    `先假設 ${A.name} 是老實人。老實人說真話，所以「${A.said}」成立。這會推出另一人是什麼？有沒有說不通？`,
-    B?`再假設 ${A.name} 是大話王。大話王說假話，所以「${A.said}」不成立。請把兩條假設都走完，才下判斷。`:""
-  ];
-  if(B&&B.said) lines.push(`記着：${B.name} 說「${B.said}」。無論你假設誰是老實人，都要檢查這句能不能和身份同時成立。`);
-  return lines.filter(Boolean)[Math.min(n-1,lines.filter(Boolean).length-1)];
+  syncHintUI(p);
 }
 
 function renderGuide(p){
@@ -169,6 +458,7 @@ function renderGuide(p){
         <li>才下判斷</li>
       </ol>
     </div>
+    ${countRuleHTML()}
     <p class="msg" id="fb">先自己走一次：「如果小安是老實人，這句話還能不能成立？」</p>
     <div class="btn-row">
       <button class="btn btn-yellow" id="hintBtn">💡 下一步提示</button>
@@ -184,6 +474,7 @@ function renderPuzzle(p){
     <div class="badge">${p.title}</div>
     <h2>他們是老實人還是大話王？</h2>
     <p>先在心裏（或學習單）寫下假設，再點選。提示只幫你按步推理，不會直接告訴答案。</p>
+    ${countRuleHTML()}
     <div class="who">${p.people.map(personCard).join("")}</div>
     <div class="btn-row">
       <button class="btn btn-primary" id="checkBtn">✅ 檢查推理</button>
@@ -206,14 +497,16 @@ function bind(){
     b.onclick=()=>{state.mark[b.dataset.id]=b.dataset.v;render();};
   });
   if($("hintBtn"))$("hintBtn").onclick=()=>{
+    const steps=hintSteps(p);
+    if(state.hint>=steps.length) return;
     state.hint++;
-    const box=$("guideSteps")||$("fb");
-    const t=hintText(p,state.hint);
+    const t=steps[state.hint-1];
     if($("guideSteps")){
       const d=document.createElement("p");d.className="msg hint";d.textContent=t;$("guideSteps").appendChild(d);
-    }else{
+    }else if($("fb")){
       $("fb").className="msg hint";$("fb").textContent=t;
     }
+    syncHintUI(p);
   };
   if($("checkBtn"))$("checkBtn").onclick=()=>check(p);
   if($("nextBtn"))$("nextBtn").onclick=()=>{
@@ -221,28 +514,28 @@ function bind(){
     const list=listForLevel();const i=list.findIndex(x=>x.id===p.id);
     load((list[(i+1)%list.length]||list[0]).id);
   };
+  showRevealedHints(p);
 }
 
 function check(p){
   for(const person of p.people){
     if(!state.mark[person.id]){$("fb").className="msg warn";$("fb").textContent="請先為每一個人選擇「老實人」或「大話王」。";return;}
   }
-  let ok=true;
-  for(const k in p.sol) if(state.mark[k]!==p.sol[k]) ok=false;
-  if(ok){
+  if(isConsistent(p, state.mark)){
     state.best[p.id]="ok";
     $("fb").className="msg ok";
     $("fb").textContent="說得通！請向同學講講：你先假設了什麼？哪一條假設說不通？";
     renderList();
   }else{
     $("fb").className="msg warn";
-    $("fb").textContent="這個組合還有說不通的地方。試試先假設其中一人是老實人，把兩條路都走完。這裡不會公布答案。";
+    $("fb").textContent=mismatchFeedback(p, state.mark);
   }
 }
 
 function openCreate(){
   openCard(`<h2>出題給鄰組</h2>
     <p>請設計一道兩人題，而且必須只有一個合理答案。填好陳述後，按「檢查這題是否只有一個答案」（只告訴你可否出題，不會在作答頁公布答案）。</p>
+    ${countRuleHTML()}
     <label class="lab">第一人稱呼</label><input id="n1" value="同學甲" maxlength="8" autocomplete="off">
     <label class="lab">他／她說</label><select id="s1">
       <option value="both-knave">我們兩個都是大話王</option>
@@ -267,20 +560,11 @@ function openCreate(){
     <div class="msg" id="cFb">檢查後才把 iPad 交給鄰組。</div>`);
   $("cClose").onclick=closeCard;
   $("ckUniq").onclick=()=>{
-    const ev=function(kind,as,me,ot){
-      if(kind==="silent") return true;
-      const same=as[me]===as[ot];
-      let truth=false;
-      if(kind==="both-knave") truth=as[me]==="knave"&&as[ot]==="knave";
-      if(kind==="both-knight") truth=as[me]==="knight"&&as[ot]==="knight";
-      if(kind==="same") truth=same;
-      if(kind==="diff") truth=!same;
-      if(kind==="b-knight"||kind==="a-knight") truth=as[ot]==="knight";
-      if(kind==="b-knave"||kind==="a-knave") truth=as[ot]==="knave";
-      return as[me]==="knight"?truth:!truth;
-    };
+    const n1=($("n1").value||"同學甲").trim()||"同學甲";
+    const n2=($("n2").value||"同學乙").trim()||"同學乙";
+    const people=[{id:"a",name:n1},{id:"b",name:n2}];
     const s1=$("s1").value,s2=$("s2").value;
-    const sols=uniqueSol([{id:"a"},{id:"b"}],as=>ev(s1,as,"a","b")&&ev(s2,as,"b","a"));
+    const sols=uniqueSol(people, as=>creatorConsistent(s1,s2,as,people));
     const fb=$("cFb");
     if(sols.length===1){
       fb.className="msg ok";
@@ -298,6 +582,10 @@ function openTeacher(){
     const ans=p.people.map(x=>x.name+"＝"+(LAB[p.sol[x.id]]||"（無）")).join("，");
     return `<tr><td>${p.level}</td><td>${p.people.map(x=>x.name+"：「"+(x.said||"沒說話")+"」").join("<br>")}</td><td>${ans}</td></tr>`;
   }).join("");
+  const r=logicReport;
+  const audit=r.ok
+    ?`<p>全部通過。${r.summary}</p>`
+    :`<p>發現問題：</p><ul>${r.fails.map(f=>`<li>${f.id}：${f.issue}</li>`).join("")}</ul>`;
   openCard(`<div class="teacher"><h2>老師說明　第 2 節</h2>
   <h3>學習目標</h3>
   <ul><li>分清「若這句為真／為假會怎樣」。</li><li>初步認識：先假設，推出矛盾就排除（簡單反證法）。</li><li>支援與基本不會出現三人群題。</li></ul>
@@ -305,6 +593,8 @@ function openTeacher(){
   <p>下面僅供教師核對。網址加 <code>?teacher=1</code> 可直接打開此頁。</p>
   <table class="t"><tr><th>層</th><th>陳述</th><th>答案</th></tr>${rows}</table>
   <p>導引題「我是大話王」兩種假設都說不通，課堂重點是體驗矛盾，不要求選出一種身份。</p>
+  <h3>自動驗證</h3>
+  ${audit}
   <div class="btn-row"><button class="btn" id="tClose">關閉</button></div></div>`);
   $("tClose").onclick=closeCard;
 }
@@ -317,54 +607,6 @@ document.querySelectorAll(".lv").forEach(b=>b.onclick=()=>{
 $("teacherBtn").onclick=openTeacher;
 render();
 if(isTeacherMode()) openTeacher();
-
-(function selfTest(){
-  /* 驗證內建題唯一解：窮舉 2^n 種身份，檢查陳述真值是否與身份一致 */
-  function consistent(p,as){
-    const nameToId={};p.people.forEach(x=>nameToId[x.name]=x.id);
-    function isTrue(said,speaker){
-      if(!said) return true;
-      const others=p.people.filter(x=>x.id!==speaker.id);
-      const other=others[0];
-      const typ=id=>as[id];
-      if(said==="我是大話王。") return typ(speaker.id)==="knave";
-      if(/一個星期有七天|一天有二十四小時/.test(said)) return true;
-      if(/三角形有四條邊|香港在南極/.test(said)) return false;
-      if(said.includes("都是大話王")&&said.includes("兩個")) return p.people.every(x=>typ(x.id)==="knave");
-      if(said.includes("都是老實人")) return p.people.every(x=>typ(x.id)==="knight");
-      if(said.includes("同一種人")) return typ(p.people[0].id)===typ(p.people[1].id);
-      if(said.includes("兩種不同")) return typ(p.people[0].id)!==typ(p.people[1].id);
-      const m=said.match(/^(小華|阿文|阿偉|小河|小明|阿珍|小海)是(老實人|大話王)。$/);
-      if(m){
-        const who=p.people.find(x=>x.name===m[1]);
-        return typ(who.id)===(m[2]==="老實人"?"knight":"knave");
-      }
-      if(said.includes("小明是大話王")) return typ(p.people.find(x=>x.name==="小明").id)==="knave";
-      return null;
-    }
-    for(const person of p.people){
-      if(!person.said) continue;
-      const t=isTrue(person.said,person);
-      if(t===null) return null;
-      if(as[person.id]==="knight" && !t) return false;
-      if(as[person.id]==="knave" && t) return false;
-    }
-    return true;
-  }
-  const fails=[];
-  PUZZLES.filter(p=>p.sol).forEach(p=>{
-    const ids=p.people.map(x=>x.id);
-    const sols=[];
-    const rec=(i,as)=>{
-      if(i===ids.length){if(consistent(p,as)) sols.push(Object.assign({},as));return;}
-      as[ids[i]]="knight";rec(i+1,as);as[ids[i]]="knave";rec(i+1,as);
-    };
-    rec(0,{});
-    const uniq=sols.length===1 && ids.every(id=>sols[0][id]===p.sol[id]);
-    if(!uniq) fails.push({id:p.id,sols,declared:p.sol});
-  });
-  if(fails.length) console.error("老實人題自測失敗",fails); else console.log("老實人題自測全部通過");
-})();
 </script>
 </body>
 </html>
