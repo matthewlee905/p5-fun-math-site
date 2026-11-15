@@ -66,6 +66,7 @@ body{background:linear-gradient(#fff7ed,#ecfeff) fixed}
       </select>
     </label>
     <button class="btn btn-ghost" id="newBtn">開新一局</button>
+    <button class="btn btn-ghost" id="compareBtn">挑戰：比較兩種停手規則</button>
   </div>
 
   <div class="board">
@@ -95,13 +96,6 @@ body{background:linear-gradient(#fff7ed,#ecfeff) fixed}
     <ol class="log" id="log"></ol>
   </div>
 
-  <div class="panel">
-    <h3>活動後想一想</h3>
-    <p class="msg">本輪已經積到 15–20 分時，該不該再擲？離目標只差很少時，策略要不要改變？回看紀錄：有沒有「其實那時該停」的時刻？</p>
-    <div class="btn-row"><button class="btn btn-yellow" id="reflectBtn">✏️ 寫一句反思</button>
-    <button class="btn btn-ghost" id="compareBtn">挑戰：比較兩種停手規則</button></div>
-    <div id="reflectOut" class="msg hidden" style="margin-top:8px"></div>
-  </div>
   <footer class="teacher-entry"><button class="tbtn" id="teacherBtn">老師說明</button></footer>
 </div>
 <div class="overlay hidden" id="ov"><div class="card" id="ovCard"></div></div>
@@ -267,15 +261,6 @@ $("teacherBtn").onclick=()=>{
   <p>電腦對手只是可選，不要強迫使用。實體骰子仍建議備着。</p>
   <div class="btn-row"><button class="btn" id="tClose">關閉</button></div></div>`);
   $("tClose").onclick=closeCard;
-};
-$("reflectBtn").onclick=()=>{
-  openCard(`<h2>我原本以為……</h2>
-    <label class="lab">我原本以為</label><input id="r1" type="text" maxlength="80" autocomplete="off">
-    <label class="lab">現在發現</label><input id="r2" type="text" maxlength="80" autocomplete="off">
-    <label class="lab">因為</label><input id="r3" type="text" maxlength="80" autocomplete="off">
-    <div class="btn-row"><button class="btn btn-primary" id="rOk">完成</button><button class="btn" id="rNo">取消</button></div>`);
-  $("rOk").onclick=()=>{$("reflectOut").classList.remove("hidden");$("reflectOut").textContent=`我原本以為${$("r1").value}，現在發現${$("r2").value}，因為${$("r3").value}。`;closeCard();};
-  $("rNo").onclick=closeCard;
 };
 drawDie(null);setLevel("support");
 if(isTeacherMode()) $("teacherBtn").click();

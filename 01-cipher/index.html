@@ -63,15 +63,6 @@
   <div class="tabs" id="tabs"></div>
   <div id="main"></div>
 
-  <div class="panel">
-    <h3>想一想</h3>
-    <p class="msg" id="reflectMsg">做完加密和解密後，試用自己的話說：加密是____；解密是____。鑰匙為什麼要相同？</p>
-    <div class="btn-row">
-      <button class="btn btn-yellow" id="reflectBtn">✏️ 寫一句反思</button>
-    </div>
-    <div id="reflectOut" class="msg hidden" style="margin-top:8px"></div>
-  </div>
-
   <footer class="teacher-entry"><button class="tbtn" id="teacherBtn">老師說明</button></footer>
 </div>
 <div class="overlay hidden" id="ov"><div class="card" id="ovCard"></div></div>
@@ -179,7 +170,7 @@ function practiceView(kind){
   const slots=src.split("").map((ch,i)=>`<input class="slot" maxlength="1" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" data-i="${i}" value="${state.slots[i]||""}" aria-label="${dstLabel}第${i+1}個字母">`).join("");
   return `<div class="panel">
     <h2>${title}</h2>
-    <p>請先用紙筆或轉盤想一想，把答案填進空格，再按「核對」。不要還未想就看答案。</p>
+    <p>請先用紙筆或轉盤仔細想想，把答案填進空格，再按「核對」。不要還未想就看答案。</p>
     ${state.level==="support"||true?shiftButtons(isEnc||state.level!=="challenge"):""}
     <div class="lab">${srcLabel}</div>
     <div class="src">${src.split("").join(" ")}</div>
@@ -500,21 +491,6 @@ document.querySelectorAll(".lv").forEach(b=>b.onclick=()=>{
   pickWord();render();
 });
 $("teacherBtn").onclick=openTeacher;
-$("reflectBtn").onclick=()=>{
-  openCard(`<h2>我原本以為……</h2>
-    <label class="lab">我原本以為</label><input id="r1" type="text" maxlength="80" autocomplete="off">
-    <label class="lab">現在發現</label><input id="r2" type="text" maxlength="80" autocomplete="off">
-    <label class="lab">因為</label><input id="r3" type="text" maxlength="80" autocomplete="off">
-    <p>寫在學習單也可以。這裡只留在這部 iPad，不會上傳。</p>
-    <div class="btn-row"><button class="btn btn-primary" id="rOk">完成</button><button class="btn" id="rNo">取消</button></div>`);
-  $("rOk").onclick=()=>{
-    const a=$("r1").value.trim(),b=$("r2").value.trim(),c=$("r3").value.trim();
-    $("reflectOut").classList.remove("hidden");
-    $("reflectOut").textContent=`我原本以為${a}，現在發現${b}，因為${c}。`;
-    closeCard();
-  };
-  $("rNo").onclick=closeCard;
-};
 pickWord();render();
 if(isTeacherMode()) openTeacher();
 

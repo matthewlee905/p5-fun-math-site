@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>第 2 節　騎士與無賴</title>
+<title>第 2 節　老實人與大話王</title>
 <link rel="stylesheet" href="../css/common.css">
 <style>
 .who{display:grid;gap:12px}
@@ -28,11 +28,11 @@
 <div class="app">
   <div class="topbar">
     <a class="back" href="../index.html">← 返回總覽</a>
-    <div class="brand"><h1><span class="lesson">第 2 節</span>騎士與無賴</h1></div>
+    <div class="brand"><h1><span class="lesson">第 2 節</span>老實人與大話王</h1></div>
   </div>
   <div class="mission">
     <div class="lab">任務目的</div>
-    <p>根據陳述判斷誰是騎士（永遠說真話）、誰是無賴（永遠說假話）；先假設再檢查有沒有說不通。</p>
+    <p>根據陳述判斷誰是老實人（永遠說真話）、誰是大話王（永遠說假話）；先假設再檢查有沒有說不通。</p>
   </div>
   <div class="levels">
     <button class="lv on" data-l="support">🌱 支援（一人一句）</button>
@@ -41,12 +41,6 @@
   </div>
   <div class="done-list" id="doneList"></div>
   <div id="main"></div>
-  <div class="panel">
-    <h3>活動後想一想</h3>
-    <p class="msg">「我是無賴」這句話，為什麼騎士不會說、無賴也不會說？你能向同伴重述一次嗎？</p>
-    <div class="btn-row"><button class="btn btn-yellow" id="reflectBtn">✏️ 寫一句反思</button></div>
-    <div id="reflectOut" class="msg hidden" style="margin-top:8px"></div>
-  </div>
   <footer class="teacher-entry"><button class="tbtn" id="teacherBtn">老師說明</button></footer>
 </div>
 <div class="overlay hidden" id="ov"><div class="card" id="ovCard"></div></div>
@@ -55,7 +49,7 @@
 /* 題目均以窮舉確認只有一組答案。hints 只引導假設，不直接說出身份。 */
 const PUZZLES=[
   {id:"t0",level:"support",kind:"guide",title:"導引：先走完兩條假設",
-    people:[{id:"a",name:"小安",said:"我是無賴。"}],
+    people:[{id:"a",name:"小安",said:"我是大話王。"}],
     sol:null, // 悖論：兩種假設都說不通
     guide:true},
   {id:"s1",level:"support",title:"一人一句",
@@ -71,30 +65,30 @@ const PUZZLES=[
     people:[{id:"a",name:"小天",said:"一天有二十四小時。"}],
     sol:{a:"knight"}, fact:true},
   {id:"b1",level:"basic",title:"兩人題（一人說話）",
-    people:[{id:"a",name:"小明",said:"我們兩個都是無賴。"},{id:"b",name:"小華",said:null}],
+    people:[{id:"a",name:"小明",said:"我們兩個都是大話王。"},{id:"b",name:"小華",said:null}],
     sol:{a:"knave",b:"knight"}},
   {id:"b2",level:"basic",title:"兩人題",
-    people:[{id:"a",name:"小明",said:"小華是無賴。"},{id:"b",name:"小華",said:"我們兩個都是無賴。"}],
+    people:[{id:"a",name:"小明",said:"小華是大話王。"},{id:"b",name:"小華",said:"我們兩個都是大話王。"}],
     sol:{a:"knight",b:"knave"}},
   {id:"b3",level:"basic",title:"兩人題",
-    people:[{id:"a",name:"阿樂",said:"阿文是騎士。"},{id:"b",name:"阿文",said:"我們正好是兩種不同的人。"}],
+    people:[{id:"a",name:"阿樂",said:"阿文是老實人。"},{id:"b",name:"阿文",said:"我們正好是兩種不同的人。"}],
     sol:{a:"knave",b:"knave"}},
   {id:"b4",level:"basic",title:"兩人題",
-    people:[{id:"a",name:"小明",said:"小華和我都是騎士。"},{id:"b",name:"小華",said:"小明是無賴。"}],
+    people:[{id:"a",name:"小明",said:"小華和我都是老實人。"},{id:"b",name:"小華",said:"小明是大話王。"}],
     sol:{a:"knave",b:"knight"}},
   {id:"c1",level:"challenge",title:"互相指稱",
-    people:[{id:"a",name:"阿珍",said:"我們是同一種人。"},{id:"b",name:"阿偉",said:"阿珍是無賴。"}],
+    people:[{id:"a",name:"阿珍",said:"我們是同一種人。"},{id:"b",name:"阿偉",said:"阿珍是大話王。"}],
     sol:{a:"knave",b:"knight"}},
   {id:"c2",level:"challenge",title:"互相指稱",
-    people:[{id:"a",name:"阿珍",said:"阿偉是無賴。"},{id:"b",name:"阿偉",said:"我們是同一種人。"}],
+    people:[{id:"a",name:"阿珍",said:"阿偉是大話王。"},{id:"b",name:"阿偉",said:"我們是同一種人。"}],
     sol:{a:"knight",b:"knave"}},
   {id:"c3",level:"challenge",title:"互相指稱",
-    people:[{id:"a",name:"小海",said:"小河是騎士。"},{id:"b",name:"小河",said:"我們是同一種人。"}],
+    people:[{id:"a",name:"小海",said:"小河是老實人。"},{id:"b",name:"小河",said:"我們是同一種人。"}],
     sol:{a:"knight",b:"knight"}}
 ];
 
 const state={level:"support",id:"t0",mark:{},hint:0,best:{},create:null};
-const LAB={knight:"騎士",knave:"無賴"};
+const LAB={knight:"老實人",knave:"大話王"};
 
 function listForLevel(){return PUZZLES.filter(p=>p.level===state.level);}
 function cur(){return PUZZLES.find(p=>p.id===state.id)||listForLevel()[0];}
@@ -137,8 +131,8 @@ function personCard(p){
   return `<div class="person">
     <h3>${p.name}</h3>${said}
     <div class="choices">
-      <button class="knight ${mk==="knight"?"on":""}" data-id="${p.id}" data-v="knight">🛡️ 騎士（永遠說真話）</button>
-      <button class="knave ${mk==="knave"?"on":""}" data-id="${p.id}" data-v="knave">😈 無賴（永遠說假話）</button>
+      <button class="knight ${mk==="knight"?"on":""}" data-id="${p.id}" data-v="knight">😊 老實人（永遠說真話）</button>
+      <button class="knave ${mk==="knave"?"on":""}" data-id="${p.id}" data-v="knave">🤥 大話王（永遠說假話）</button>
     </div>
   </div>`;
 }
@@ -147,19 +141,19 @@ function hintText(p,n){
   const A=p.people[0],B=p.people[1];
   if(p.guide){
     return [
-      "先假設小安是騎士。騎士永遠說真話，那麼「我是無賴」就是真的——可是騎士不可能是無賴。這條假設說不通。",
-      "再假設小安是無賴。無賴永遠說假話，那麼「我是無賴」會變成真話——無賴也不能說真話。兩條假設都說不通。",
-      "結論：島上沒有人會說「我是無賴」。這題不是要你選出一種身份，而是看見「說不通」的力量。"
+      "先假設小安是老實人。老實人永遠說真話，那麼「我是大話王」就是真的——可是老實人不可能是大話王。這條假設說不通。",
+      "再假設小安是大話王。大話王永遠說假話，那麼「我是大話王」會變成真話——大話王也不能說真話。兩條假設都說不通。",
+      "結論：沒有人會說「我是大話王」。這題不是要你選出一種身份，而是看見「說不通」的力量。"
     ][Math.min(n-1,2)];
   }
   if(p.people.length===1){
-    return n===1?`先假設 ${A.name} 是騎士。那麼這句話必須是真的。這句話在現實裏說得通嗎？`:`再假設 ${A.name} 是無賴。那麼這句話必須是假的。哪一條假設說不通？`;
+    return n===1?`先假設 ${A.name} 是老實人。那麼這句話必須是真的。這句話在現實裏說得通嗎？`:`再假設 ${A.name} 是大話王。那麼這句話必須是假的。哪一條假設說不通？`;
   }
   const lines=[
-    `先假設 ${A.name} 是騎士。騎士說真話，所以「${A.said}」成立。這會推出另一人是什麼？有沒有說不通？`,
-    B?`再假設 ${A.name} 是無賴。無賴說假話，所以「${A.said}」不成立。請把兩條假設都走完，才下判斷。`:""
+    `先假設 ${A.name} 是老實人。老實人說真話，所以「${A.said}」成立。這會推出另一人是什麼？有沒有說不通？`,
+    B?`再假設 ${A.name} 是大話王。大話王說假話，所以「${A.said}」不成立。請把兩條假設都走完，才下判斷。`:""
   ];
-  if(B&&B.said) lines.push(`記着：${B.name} 說「${B.said}」。無論你假設誰是騎士，都要檢查這句能不能和身份同時成立。`);
+  if(B&&B.said) lines.push(`記着：${B.name} 說「${B.said}」。無論你假設誰是老實人，都要檢查這句能不能和身份同時成立。`);
   return lines.filter(Boolean)[Math.min(n-1,lines.filter(Boolean).length-1)];
 }
 
@@ -175,7 +169,7 @@ function renderGuide(p){
         <li>才下判斷</li>
       </ol>
     </div>
-    <p class="msg" id="fb">先自己走一次：「如果小安是騎士，這句話還能不能成立？」</p>
+    <p class="msg" id="fb">先自己走一次：「如果小安是老實人，這句話還能不能成立？」</p>
     <div class="btn-row">
       <button class="btn btn-yellow" id="hintBtn">💡 下一步提示</button>
       <button class="btn btn-green" id="nextBtn">我走完了，下一題</button>
@@ -188,7 +182,7 @@ function renderPuzzle(p){
   if(p.guide) return renderGuide(p);
   return `<div class="panel">
     <div class="badge">${p.title}</div>
-    <h2>他們是騎士還是無賴？</h2>
+    <h2>他們是老實人還是大話王？</h2>
     <p>先在心裏（或學習單）寫下假設，再點選。提示只幫你按步推理，不會直接告訴答案。</p>
     <div class="who">${p.people.map(personCard).join("")}</div>
     <div class="btn-row">
@@ -231,7 +225,7 @@ function bind(){
 
 function check(p){
   for(const person of p.people){
-    if(!state.mark[person.id]){$("fb").className="msg warn";$("fb").textContent="請先為每一個人選擇「騎士」或「無賴」。";return;}
+    if(!state.mark[person.id]){$("fb").className="msg warn";$("fb").textContent="請先為每一個人選擇「老實人」或「大話王」。";return;}
   }
   let ok=true;
   for(const k in p.sol) if(state.mark[k]!==p.sol[k]) ok=false;
@@ -242,31 +236,31 @@ function check(p){
     renderList();
   }else{
     $("fb").className="msg warn";
-    $("fb").textContent="這個組合還有說不通的地方。試試先假設其中一人是騎士，把兩條路都走完。這裡不會公布答案。";
+    $("fb").textContent="這個組合還有說不通的地方。試試先假設其中一人是老實人，把兩條路都走完。這裡不會公布答案。";
   }
 }
 
 function openCreate(){
   openCard(`<h2>出題給鄰組</h2>
     <p>請設計一道兩人題，而且必須只有一個合理答案。填好陳述後，按「檢查這題是否只有一個答案」（只告訴你可否出題，不會在作答頁公布答案）。</p>
-    <label class="lab">第一人稱呼</label><input id="n1" value="島民甲" maxlength="8" autocomplete="off">
+    <label class="lab">第一人稱呼</label><input id="n1" value="同學甲" maxlength="8" autocomplete="off">
     <label class="lab">他／她說</label><select id="s1">
-      <option value="both-knave">我們兩個都是無賴</option>
-      <option value="both-knight">我們兩個都是騎士</option>
+      <option value="both-knave">我們兩個都是大話王</option>
+      <option value="both-knight">我們兩個都是老實人</option>
       <option value="same">我們是同一種人</option>
       <option value="diff">我們是兩種不同的人</option>
-      <option value="b-knight">對方是騎士</option>
-      <option value="b-knave">對方是無賴</option>
+      <option value="b-knight">對方是老實人</option>
+      <option value="b-knave">對方是大話王</option>
     </select>
-    <label class="lab">第二人稱呼</label><input id="n2" value="島民乙" maxlength="8" autocomplete="off">
+    <label class="lab">第二人稱呼</label><input id="n2" value="同學乙" maxlength="8" autocomplete="off">
     <label class="lab">他／她說</label><select id="s2">
       <option value="silent">（不說話）</option>
-      <option value="both-knave">我們兩個都是無賴</option>
-      <option value="both-knight">我們兩個都是騎士</option>
+      <option value="both-knave">我們兩個都是大話王</option>
+      <option value="both-knight">我們兩個都是老實人</option>
       <option value="same">我們是同一種人</option>
       <option value="diff">我們是兩種不同的人</option>
-      <option value="a-knight">對方是騎士</option>
-      <option value="a-knave">對方是無賴</option>
+      <option value="a-knight">對方是老實人</option>
+      <option value="a-knave">對方是大話王</option>
     </select>
     <div class="btn-row"><button class="btn btn-primary" id="ckUniq">檢查是否只有一個答案</button>
     <button class="btn" id="cClose">關閉</button></div>
@@ -310,7 +304,7 @@ function openTeacher(){
   <h3>學生頁不會一鍵公布答案。</h3>
   <p>下面僅供教師核對。網址加 <code>?teacher=1</code> 可直接打開此頁。</p>
   <table class="t"><tr><th>層</th><th>陳述</th><th>答案</th></tr>${rows}</table>
-  <p>導引題「我是無賴」兩種假設都說不通，課堂重點是體驗矛盾，不要求選出一種身份。</p>
+  <p>導引題「我是大話王」兩種假設都說不通，課堂重點是體驗矛盾，不要求選出一種身份。</p>
   <div class="btn-row"><button class="btn" id="tClose">關閉</button></div></div>`);
   $("tClose").onclick=closeCard;
 }
@@ -321,15 +315,6 @@ document.querySelectorAll(".lv").forEach(b=>b.onclick=()=>{
   load(listForLevel()[0].id);
 });
 $("teacherBtn").onclick=openTeacher;
-$("reflectBtn").onclick=()=>{
-  openCard(`<h2>我原本以為……</h2>
-    <label class="lab">我原本以為</label><input id="r1" type="text" maxlength="80" autocomplete="off">
-    <label class="lab">現在發現</label><input id="r2" type="text" maxlength="80" autocomplete="off">
-    <label class="lab">因為</label><input id="r3" type="text" maxlength="80" autocomplete="off">
-    <div class="btn-row"><button class="btn btn-primary" id="rOk">完成</button><button class="btn" id="rNo">取消</button></div>`);
-  $("rOk").onclick=()=>{$("reflectOut").classList.remove("hidden");$("reflectOut").textContent=`我原本以為${$("r1").value}，現在發現${$("r2").value}，因為${$("r3").value}。`;closeCard();};
-  $("rNo").onclick=closeCard;
-};
 render();
 if(isTeacherMode()) openTeacher();
 
@@ -342,19 +327,19 @@ if(isTeacherMode()) openTeacher();
       const others=p.people.filter(x=>x.id!==speaker.id);
       const other=others[0];
       const typ=id=>as[id];
-      if(said==="我是無賴。") return typ(speaker.id)==="knave";
+      if(said==="我是大話王。") return typ(speaker.id)==="knave";
       if(/一個星期有七天|一天有二十四小時/.test(said)) return true;
       if(/三角形有四條邊|香港在南極/.test(said)) return false;
-      if(said.includes("都是無賴")&&said.includes("兩個")) return p.people.every(x=>typ(x.id)==="knave");
-      if(said.includes("都是騎士")) return p.people.every(x=>typ(x.id)==="knight");
+      if(said.includes("都是大話王")&&said.includes("兩個")) return p.people.every(x=>typ(x.id)==="knave");
+      if(said.includes("都是老實人")) return p.people.every(x=>typ(x.id)==="knight");
       if(said.includes("同一種人")) return typ(p.people[0].id)===typ(p.people[1].id);
       if(said.includes("兩種不同")) return typ(p.people[0].id)!==typ(p.people[1].id);
-      const m=said.match(/^(小華|阿文|阿偉|小河|小明|阿珍|小海)是(騎士|無賴)。$/);
+      const m=said.match(/^(小華|阿文|阿偉|小河|小明|阿珍|小海)是(老實人|大話王)。$/);
       if(m){
         const who=p.people.find(x=>x.name===m[1]);
-        return typ(who.id)===(m[2]==="騎士"?"knight":"knave");
+        return typ(who.id)===(m[2]==="老實人"?"knight":"knave");
       }
-      if(said.includes("小明是無賴")) return typ(p.people.find(x=>x.name==="小明").id)==="knave";
+      if(said.includes("小明是大話王")) return typ(p.people.find(x=>x.name==="小明").id)==="knave";
       return null;
     }
     for(const person of p.people){
@@ -378,7 +363,7 @@ if(isTeacherMode()) openTeacher();
     const uniq=sols.length===1 && ids.every(id=>sols[0][id]===p.sol[id]);
     if(!uniq) fails.push({id:p.id,sols,declared:p.sol});
   });
-  if(fails.length) console.error("騎士題自測失敗",fails); else console.log("騎士題自測全部通過");
+  if(fails.length) console.error("老實人題自測失敗",fails); else console.log("老實人題自測全部通過");
 })();
 </script>
 </body>

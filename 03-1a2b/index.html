@@ -60,12 +60,6 @@
     <div class="pool" id="pool"></div>
     <table class="t hist" id="hist"><thead><tr><th>#</th><th>猜測</th><th>提示</th></tr></thead><tbody></tbody></table>
   </div>
-  <div class="panel">
-    <h3>活動後想一想</h3>
-    <p class="msg">這一提示刪除了哪些可能？你的下一猜是想確認數字，還是確認位置？</p>
-    <div class="btn-row"><button class="btn btn-yellow" id="reflectBtn">✏️ 寫一句反思</button></div>
-    <div id="reflectOut" class="msg hidden" style="margin-top:8px"></div>
-  </div>
   <footer class="teacher-entry"><button class="tbtn" id="teacherBtn">老師說明</button></footer>
 </div>
 <div class="overlay hidden" id="ov"><div class="card" id="ovCard"></div></div>
@@ -175,10 +169,10 @@ function submit(){
   if(r.A===state.len){
     state.games++;
     $("fb").className="msg ok";
-    $("fb").textContent=`猜中了！用了 ${state.hist.length} 次。請在學習單寫下：哪一次提示幫你刪除了最多可能？`;
+    $("fb").textContent=`猜中了！用了 ${state.hist.length} 次。可以再看紀錄：哪一次提示幫你刪除了最多可能？`;
   }else{
     $("fb").className="msg";
-    $("fb").textContent=`提示：${r.A}A ${r.B}B。A＝數字與位置都對；B＝數字對、位置不對。看看紀錄，想一想下一猜要弄清楚什麼。`;
+    $("fb").textContent=`提示：${r.A}A ${r.B}B。A＝數字與位置都對；B＝數字對、位置不對。看看紀錄，再決定下一猜要弄清楚什麼：是確認數字，還是確認位置？`;
   }
 }
 
@@ -210,15 +204,6 @@ $("teacherBtn").onclick=()=>{
   <p>建議至少 2 局；不問手速。網址加 <code>?teacher=1</code> 可開此頁。</p>
   <div class="btn-row"><button class="btn" id="tClose">關閉</button></div></div>`);
   $("tClose").onclick=closeCard;
-};
-$("reflectBtn").onclick=()=>{
-  openCard(`<h2>我原本以為……</h2>
-    <label class="lab">我原本以為</label><input id="r1" type="text" maxlength="80" autocomplete="off">
-    <label class="lab">現在發現</label><input id="r2" type="text" maxlength="80" autocomplete="off">
-    <label class="lab">因為</label><input id="r3" type="text" maxlength="80" autocomplete="off">
-    <div class="btn-row"><button class="btn btn-primary" id="rOk">完成</button><button class="btn" id="rNo">取消</button></div>`);
-  $("rOk").onclick=()=>{$("reflectOut").classList.remove("hidden");$("reflectOut").textContent=`我原本以為${$("r1").value}，現在發現${$("r2").value}，因為${$("r3").value}。`;closeCard();};
-  $("rNo").onclick=closeCard;
 };
 newGame();
 if(isTeacherMode()) $("teacherBtn").click();
