@@ -524,7 +524,7 @@ function check(p){
   if(isConsistent(p, state.mark)){
     state.best[p.id]="ok";
     $("fb").className="msg ok";
-    $("fb").textContent="說得通！請向同學講講：你先假設了什麼？哪一條假設說不通？";
+    $("fb").textContent="正確！請向同學講講：你先假設了什麼？哪一條假設說不通？";
     renderList();
   }else{
     $("fb").className="msg warn";
