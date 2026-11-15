@@ -30,6 +30,11 @@
 .src{font-size:36px;font-weight:900;letter-spacing:.2em;text-align:center;margin:6px 0}
 .slip{background:#fffbeb;border:4px dashed #f59e0b;border-radius:20px;padding:18px;text-align:center}
 .slip .big{font-size:40px;font-weight:900;letter-spacing:.2em;margin:8px 0}
+.swap-steps{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 12px;padding:0;list-style:none;cursor:default;-webkit-user-select:none;user-select:none}
+.swap-steps .st{flex:1;min-width:140px;min-height:48px;padding:8px 10px;border-radius:14px;background:#fff7ed;color:#9a3412;font-weight:700;font-size:16px;line-height:1.35;display:flex;align-items:center;justify-content:center;text-align:center;box-shadow:none;border:2px solid #fed7aa;cursor:default;pointer-events:none;outline:none}
+.swap-steps .st.on{background:#fdba74;border-color:#c2410c;color:#7c2d12;font-weight:900}
+.hidekey-opt{display:flex;align-items:center;gap:10px;min-height:48px;margin:10px 0;padding:8px 12px;border:2px solid #e7d3ae;border-radius:14px;font-size:18px;font-weight:700;cursor:pointer;background:#fff}
+.hidekey-opt input{width:24px;height:24px;flex-shrink:0}
 .pig-grid{display:grid;grid-template-columns:repeat(13,1fr);gap:8px}
 .pig-cell{background:#fff;border:2px solid #e7d3ae;border-radius:10px;padding:6px;text-align:center;font-weight:800}
 .pig-cell svg{width:40px;height:40px;margin:0 auto}
@@ -54,7 +59,7 @@
   </div>
   <div class="mission">
     <div class="lab">任務目的</div>
-    <p>明白什麼是加密、什麼是解密；用同一把鑰匙（移位格數）親手把明文變成密文，再把密文還原成明文。</p>
+    <p>① 用一個移位數字，把一個英文字變成秘密暗號。支援層不用自己選，已鎖定為 +3。<br>② 用同一個數字，把暗號變回原來的字。也可以和同學交換暗號再互變。<br>兩項都做對一次，就算完成。只用英文字母，不要用中文。</p>
   </div>
 
   <div class="levels" id="levels">
@@ -206,63 +211,160 @@ function renderWheel(){
   </div>`;
 }
 
+function resetSwap(){
+  swap={phase:1,plain:"",cipher:"",shift:state.shift,guess:"",hideKey:false,revealed:false};
+}
+function swapStepsHtml(cur){
+  const items=["① A 秘密加密","② 遮住後交給 B","③ B 解密","④ 一起對答案"];
+  return `<div class="swap-steps" role="list" aria-label="交換步驟">${items.map((t,i)=>`<div class="st${i+1===cur?" on":""}" role="listitem"${i+1===cur?" aria-current=\"step\"":""}>${t}</div>`).join("")}</div>`;
+}
+function clearSwapFields(){
+  ["swapPlain","swapCipher","swapGuess"].forEach(id=>{
+    const el=$(id); if(!el) return;
+    el.value="";
+    el.defaultValue="";
+    el.setAttribute("placeholder","");
+    el.removeAttribute("value");
+    el.remove();
+  });
+}
+function bindSwapShift(keep){
+  const bump=d=>{
+    if(state.level==="support") return;
+    state.shift=Math.max(1,Math.min(25,state.shift+d));
+    if($("shN")) $("shN").textContent="+"+state.shift;
+    if(keep){
+      const a=$("swapPlain")&&$("swapPlain").value;
+      const c=$("swapCipher")&&$("swapCipher").value;
+      const g=$("swapGuess")&&$("swapGuess").value;
+      if($("tryOut")) $("tryOut").textContent=caesar(swap.cipher,state.shift,true).out.split("").join(" ");
+      if($("shN")) $("shN").textContent="+"+state.shift;
+      if(a!==undefined&&$("swapPlain")) $("swapPlain").value=a;
+      if(c!==undefined&&$("swapCipher")) $("swapCipher").value=c;
+      if(g!==undefined&&$("swapGuess")) $("swapGuess").value=g;
+    }
+  };
+  if($("shMinus")) $("shMinus").onclick=()=>bump(-1);
+  if($("shPlus")) $("shPlus").onclick=()=>bump(1);
+}
+function swapSlip(showKey){
+  const key=showKey?`<div>鑰匙　<b>+${swap.shift}</b></div>`:`<div>這次沒有顯示鑰匙，請自己試。</div>`;
+  return `<div class="slip"><div>暗號</div><div class="big">${swap.cipher.split("").join(" ")}</div>${key}</div>`;
+}
+function restartSwap(){
+  clearSwapFields();
+  resetSwap();
+  render();
+}
+
 function renderSwap(){
   return `<div class="panel" id="swapBox">
     <h2>交換密文（二人一機）</h2>
-    <p>同學 A 先加密一個短英文單詞（不要用真實姓名或班號），核對後把密文和鑰匙交給同學 B 解密。</p>
+    <div id="swapStepsHost"></div>
+    <p>二人共用一部 iPad。不要用真實姓名或班號，只用英文字母。</p>
     <div id="swapStep"></div>
   </div>`;
 }
 
-let swap={phase:1,plain:"",cipher:"",shift:3,guess:""};
+let swap={phase:1,plain:"",cipher:"",shift:3,guess:"",hideKey:false,revealed:false};
 
 function renderSwapStep(){
   const box=$("swapStep"); if(!box) return;
+  const host=$("swapStepsHost");
+  const showKey=!swap.hideKey;
+  if(host){
+    const cur=swap.phase===1?1:swap.phase===2?2:swap.phase===3?3:4;
+    host.innerHTML=swapStepsHtml(cur);
+  }
   if(swap.phase===1){
-    box.innerHTML=`${hanBox()}
-      <label class="lab">同學 A：輸入明文（短英文單詞）</label>
-      <input id="swapPlain" type="text" maxlength="16" placeholder="例如 APPLE" autocomplete="off" spellcheck="false">
-      ${shiftButtons(false)}
-      <label class="lab">先自己寫出密文，再核對</label>
-      <input id="swapCipher" type="text" maxlength="16" placeholder="你的密文" autocomplete="off" spellcheck="false" style="text-transform:uppercase">
+    const hideOpt=state.level==="challenge"?`<label class="hidekey-opt"><input type="checkbox" id="swapHideKey"${swap.hideKey?" checked":""}> 交給同學 B 時不顯示鑰匙（未知鑰匙）</label>`:"";
+    box.innerHTML=`${hanWarn()}
+      <label class="lab">同學 A：輸入原來的字（短英文單詞）</label>
+      <input id="swapPlain" type="text" maxlength="16" placeholder="例如 HELLO" autocomplete="off" autocorrect="off" spellcheck="false">
+      ${shiftButtons(true)}
+      ${hideOpt}
+      <label class="lab">先自己寫出暗號，再核對</label>
+      <input id="swapCipher" type="text" maxlength="16" placeholder="你寫出的暗號" autocomplete="off" autocorrect="off" spellcheck="false" style="text-transform:uppercase">
       <div class="btn-row">
         <button class="btn btn-primary" id="swapCheck">✅ 核對加密</button>
       </div>
-      <div class="msg" id="swapFb">寫好後按核對。對了就可以把 iPad 轉給同學 B。</div>`;
-    if($("shMinus"))$("shMinus").onclick=()=>{state.shift=Math.max(1,state.shift-1);const v=$("swapPlain")&&$("swapPlain").value;const c=$("swapCipher")&&$("swapCipher").value;render();swap.plain=v;if($("swapPlain"))$("swapPlain").value=v;if($("swapCipher"))$("swapCipher").value=c;renderSwapStep();};
-    if($("shPlus"))$("shPlus").onclick=()=>{state.shift=Math.min(25,state.shift+1);const v=$("swapPlain")&&$("swapPlain").value;const c=$("swapCipher")&&$("swapCipher").value;render();if($("swapPlain"))$("swapPlain").value=v;if($("swapCipher"))$("swapCipher").value=c;renderSwapStep();};
+      <div class="msg" id="swapFb">寫好後按核對。對了以後，再按「遮住，交給同學 B」。</div>`;
+    bindSwapShift(true);
+    if($("swapHideKey")) $("swapHideKey").onchange=()=>{swap.hideKey=$("swapHideKey").checked;};
     $("swapCheck").onclick=()=>{
-      const p=onlyAZ($("swapPlain").value);
+      const raw=$("swapPlain").value;
+      const p=onlyAZ(raw);
       const g=onlyAZ($("swapCipher").value);
-      if(hasHan($("swapPlain").value)){$("swapFb").className="msg warn";$("swapFb").textContent="不能直接加密漢字，請改用英文單詞。";return;}
+      if($("swapHideKey")) swap.hideKey=$("swapHideKey").checked;
+      if(hasHan(raw)){$("swapFb").className="msg warn";$("swapFb").textContent="不能直接加密漢字，請改用英文單詞。";return;}
       if(p.length<2){$("swapFb").className="msg warn";$("swapFb").textContent="請輸入至少 2 個英文字母。";return;}
       const right=caesar(p,state.shift,false).out;
       if(g!==right){$("swapFb").className="msg warn";$("swapFb").textContent="還未相符。再看轉盤，逐個字母試一次。暫時不顯示完整答案。";return;}
-      swap.plain=p;swap.cipher=right;swap.shift=state.shift;swap.phase=2;state.doneEnc=true;updateProgress();renderSwapStep();
+      swap.plain=p;swap.cipher=right;swap.shift=state.shift;swap.phase=2;swap.revealed=false;
+      state.doneEnc=true;updateProgress();renderSwapStep();
     };
   }else if(swap.phase===2){
-    box.innerHTML=`<div class="slip">
-      <p>把這張「紙條」交給同學 B（同學 A 不要提示明文）</p>
-      <div>密文</div><div class="big">${swap.cipher.split("").join(" ")}</div>
-      <div>鑰匙　<b>+${swap.shift}</b></div>
-    </div>
-    <div class="btn-row"><button class="btn btn-blue" id="toDec">同學 B 開始解密</button></div>`;
-    $("toDec").onclick=()=>{swap.phase=3;renderSwapStep();};
+    const hideOpt=state.level==="challenge"?`<label class="hidekey-opt"><input type="checkbox" id="swapHideKey"${swap.hideKey?" checked":""}> 交給同學 B 時不顯示鑰匙（未知鑰匙）</label>`:"";
+    box.innerHTML=`${hideOpt}
+      <p>暗號已核對正確。請先按「遮住，交給同學 B」，才把 iPad 交給同學。</p>
+      <div class="lab">原來的字（只有同學 A 看得到，遮住後會清走）</div>
+      <div class="src" id="swapPlainPreview">${swap.plain.split("").join(" ")}</div>
+      <div class="lab">暗號</div>
+      <div class="src">${swap.cipher.split("").join(" ")}</div>
+      <div class="lab">鑰匙</div>
+      <div class="src">+${swap.shift}</div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="swapHide">遮住，交給同學 B</button>
+        <button class="btn" id="swapRestart">重新開始</button>
+      </div>
+      <div class="msg" id="swapFb">按「遮住」後，原來的字會從畫面清走，同學 B 就看不到了。</div>`;
+    if($("swapHideKey")) $("swapHideKey").onchange=()=>{swap.hideKey=$("swapHideKey").checked;};
+    $("swapHide").onclick=()=>{
+      if($("swapHideKey")) swap.hideKey=$("swapHideKey").checked;
+      clearSwapFields();
+      const prev=$("swapPlainPreview");
+      if(prev){prev.textContent="";prev.remove();}
+      if(swap.hideKey){
+        state.shift=swap.shift===1?2:1;
+      }else{
+        state.shift=swap.shift;
+      }
+      swap.phase=3;swap.revealed=false;
+      render();
+    };
+    $("swapRestart").onclick=restartSwap;
   }else if(swap.phase===3){
-    box.innerHTML=`<div class="slip"><div>密文</div><div class="big">${swap.cipher.split("").join(" ")}</div><div>鑰匙　<b>+${swap.shift}</b></div></div>
-      <label class="lab">同學 B：寫出明文</label>
-      <input id="swapGuess" type="text" maxlength="16" placeholder="你還原的明文" autocomplete="off" spellcheck="false" style="text-transform:uppercase">
-      <div class="btn-row"><button class="btn btn-primary" id="swapDec">✅ 核對解密</button></div>
-      <div class="msg" id="swapFb">用同一把鑰匙反向找回明文。</div>`;
+    const tryBox=swap.hideKey?`${shiftButtons(false)}<label class="lab">用這把鑰匙會得到</label><div class="src" id="tryOut">${caesar(swap.cipher,state.shift,true).out.split("").join(" ")}</div>`:"";
+    box.innerHTML=`${swapSlip(showKey)}
+      ${tryBox}
+      <label class="lab">同學 B：寫出原來的字</label>
+      <input id="swapGuess" type="text" maxlength="16" placeholder="你還原的字" autocomplete="off" autocorrect="off" spellcheck="false" style="text-transform:uppercase">
+      <div class="btn-row">
+        <button class="btn btn-primary" id="swapDec">✅ 核對解密</button>
+        <button class="btn" id="swapReveal">揭曉</button>
+        <button class="btn" id="swapRestart">重新開始</button>
+      </div>
+      <div class="msg" id="swapFb">${swap.hideKey?"這次沒有顯示鑰匙，請自己試。答對才計入「解密一次」。按「揭曉」可以看原來的字，但不計入進度。":"請用同一把鑰匙，把暗號變回原來的字。答對才計入「解密一次」。按「揭曉」可以看原來的字，但不計入進度。"}</div>`;
+    bindSwapShift(true);
     $("swapDec").onclick=()=>{
       const g=onlyAZ($("swapGuess").value);
-      if(g!==swap.plain){$("swapFb").className="msg warn";$("swapFb").textContent="還未相符。記住：解密要反向移位，到了 A 要循環回 Z。";return;}
-      swap.phase=4;state.doneDec=true;updateProgress();renderSwapStep();
+      if(g.length<2){$("swapFb").className="msg warn";$("swapFb").textContent="請輸入還原後的英文字，再核對。";return;}
+      if(g!==swap.plain){$("swapFb").className="msg warn";$("swapFb").textContent="還未相符。記住：解密要反向移位，到了 A 要循環回 Z。暫時不顯示原來的字。";return;}
+      clearSwapFields();
+      swap.phase=4;swap.revealed=false;state.doneDec=true;updateProgress();renderSwapStep();
     };
+    $("swapReveal").onclick=()=>{
+      clearSwapFields();
+      swap.phase=4;swap.revealed=true;updateProgress();renderSwapStep();
+    };
+    $("swapRestart").onclick=restartSwap;
   }else{
-    box.innerHTML=`<div class="msg ok">太好了！密文 ${swap.cipher}、鑰匙 +${swap.shift}，還原得到 ${swap.plain}。你們完成了一次加密、一次解密。</div>
-      <div class="btn-row"><button class="btn btn-green" id="swapAgain">互換角色再來一次</button></div>`;
-    $("swapAgain").onclick=()=>{swap={phase:1,plain:"",cipher:"",shift:state.shift,guess:""};renderSwapStep();};
+    const result=swap.revealed
+      ?`已揭曉。暗號 ${swap.cipher}、鑰匙 +${swap.shift}，原來的字是 ${swap.plain}。這次按「揭曉」，不計入「解密一次」。可按「重新開始」換角色再試。`
+      :`太好了！暗號 ${swap.cipher}、鑰匙 +${swap.shift}，原來的字是 ${swap.plain}。你們完成了一次加密、一次解密。可按「重新開始」換角色。`;
+    box.innerHTML=`<div class="msg ${swap.revealed?"":"ok"}">${result}</div>
+      <div class="btn-row"><button class="btn btn-green" id="swapRestart">重新開始</button></div>`;
+    $("swapRestart").onclick=restartSwap;
   }
 }
 
@@ -480,8 +582,10 @@ function openTeacher(){
   openCard(`<div class="teacher"><h2>老師說明　第 1 節</h2>
   <h3>學習目標</h3>
   <p>學生頁：「我能夠找出字母移位的規律，用同一把鑰匙把明文變成密文，再把密文還原成明文，並說出加密和解密有什麼不同。」</p>
+  <h3>任務目的（學生頁）</h3>
+  <p>① 用一個移位數字，把一個英文字變成秘密暗號。支援層不用自己選，已鎖定為 +3。<br>② 用同一個數字，把暗號變回原來的字。也可以和同學交換暗號再互變。<br>兩項都做對一次，就算完成。只用英文字母，不要用中文。</p>
   <ul><li>能說出：加密＝按約定規則把明文變成密文；解密＝用同一把鑰匙還原。</li>
-  <li>每對都要親手做一次加密、一次解密（可用「交換密文」）。</li>
+  <li>每對都要親手做一次加密、一次解密（可用「交換密文」）。交換時，同學 A 核對暗號正確後須按「遮住，交給同學 B」，原字會從畫面及其他分頁清走，只留下暗號；支援／基本會顯示鑰匙，挑戰層可選「不顯示鑰匙（未知鑰匙）」。同學 B 核對答對才計「解密一次」；按「揭曉」可看原字但不計入進度。可按「重新開始」換角色。</li>
   <li>只處理 26 個大寫拉丁字母；不可直接加密漢字。</li></ul>
   <h3>分層</h3>
   <ul><li>支援：鎖鑰匙 +3，詞長約 3–4，對照表常駐。</li>
@@ -504,6 +608,7 @@ document.querySelectorAll(".lv").forEach(b=>b.onclick=()=>{
   document.querySelectorAll(".lv").forEach(x=>x.classList.toggle("on",x===b));
   if(state.level==="support") state.shift=3;
   if(state.mode==="unknown"||state.mode==="pigpen"){if(state.level!=="challenge") state.mode="enc";}
+  resetSwap();
   pickWord();render();
 });
 $("teacherBtn").onclick=openTeacher;
