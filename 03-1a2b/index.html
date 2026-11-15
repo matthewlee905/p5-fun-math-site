@@ -10,16 +10,53 @@
 .pad{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-width:420px;margin:8px auto}
 .pad button{min-height:56px;border-radius:16px;font-size:26px;font-weight:900;background:#fff;border:3px solid #a7f3d0}
 .pad button:disabled{opacity:.35}
-.guess-now{display:flex;gap:10px;justify-content:center;margin:10px 0}
-.gbox{width:58px;height:64px;border:3px solid #6ee7b7;border-radius:14px;font-size:32px;font-weight:900;display:flex;align-items:center;justify-content:center;background:#ecfdf5}
+.guess-now{display:flex;gap:10px;justify-content:center;margin:10px 0;flex-wrap:wrap}
+.gbox{width:64px;min-height:72px;border:3px solid #6ee7b7;border-radius:14px;font-size:32px;font-weight:900;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#ecfdf5;padding:4px 2px}
+.gbox small{font-size:13px;font-weight:800;line-height:1.2;margin-top:2px}
+.gbox.diff{border-color:#f59e0b;background:#fffbeb}
+.gbox.diff small{color:#b45309}
 .hist{width:100%;font-size:20px}
 .hist th{background:#d1fae5}
 .ab{font-weight:900;color:#047857}
-.remain{font-size:22px;font-weight:800;text-align:center;padding:8px}
-.pool{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-height:200px;overflow:auto}
-.pool i{font-style:normal;background:#fff;border:2px solid #d1d5db;border-radius:8px;padding:4px 8px;font-weight:800;font-size:16px}
-.pool i.off{opacity:.3;text-decoration:line-through}
-.settings{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.hist tr.cmp td{background:#fffbeb}
+.settings{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.settings label{display:flex;align-items:center;gap:10px;min-height:48px;font-size:18px;font-weight:700;padding:4px 8px}
+.settings input{width:28px;height:28px}
+.how{font-size:19px;line-height:1.6;margin:0 0 10px}
+.htog{display:flex;align-items:center;gap:12px;width:100%;min-height:72px;padding:12px 14px;border-radius:18px;border:3px solid #d1d5db;background:#f9fafb;text-align:left;margin:8px 0;box-shadow:0 2px 0 #e5e7eb}
+.htog.on{border-color:#059669;background:#ecfdf5;box-shadow:0 2px 0 #047857}
+.sw{width:64px;height:36px;min-width:64px;border-radius:999px;background:#9ca3af;position:relative;flex-shrink:0}
+.htog.on .sw{background:#059669}
+.sw i{position:absolute;top:4px;left:4px;width:28px;height:28px;border-radius:50%;background:#fff;display:block;transition:left .15s}
+.htog.on .sw i{left:32px}
+.ht-text{flex:1;min-width:0}
+.ht-text strong{display:block;font-size:22px;font-weight:900;line-height:1.3}
+.ht-text span{display:block;font-size:17px;font-weight:600;line-height:1.45;color:#374151;margin-top:2px}
+.ht-state{font-weight:900;font-size:20px;min-width:52px;text-align:center;color:#6b7280;flex-shrink:0}
+.htog.on .ht-state{color:#047857}
+.hint-box{margin-top:12px;background:#f0fdf4;border:3px solid #86efac;border-radius:18px;padding:14px 16px}
+.hint-box h3{margin:0 0 8px;font-size:22px}
+.hint-box p{font-size:20px;line-height:1.65;margin:6px 0}
+.ex{background:#fff;border-radius:14px;padding:10px 12px;font-size:20px;line-height:1.65;margin:8px 0 0}
+.board{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:8px 0}
+.cell{width:92px;min-height:88px;border-radius:16px;border:3px solid #d1d5db;background:#fff;font-weight:900;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;line-height:1.2}
+.cell .d{font-size:30px}
+.cell .st{font-size:15px;margin-top:4px}
+.cell.have{border-color:#059669;background:#d1fae5;color:#065f46}
+.cell.no{border-color:#e11d48;background:#ffe4e6;color:#9f1239}
+.cell.no .d{text-decoration:line-through}
+.cell.unk{border-color:#9ca3af;background:#f9fafb;color:#374151}
+.remain-big{font-size:28px;font-weight:900;text-align:center;padding:10px;color:#047857}
+.cmp-pick{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.cmp-pick button{min-height:48px;padding:8px 14px;border-radius:14px;border:3px solid #d1d5db;background:#fff;font-size:18px;font-weight:800}
+.cmp-pick button.on{border-color:#d97706;background:#fffbeb}
+.cmp-sum{font-size:20px;line-height:1.6;margin:8px 0;background:#fff;border-radius:14px;padding:10px 12px}
+.cmp-sum ul{margin:6px 0 0;padding-left:1.2em}
+.rev-btns{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.rev-btns button{min-height:52px;padding:8px 16px;border-radius:14px;font-size:20px;font-weight:800;background:#fff;border:3px solid #6ee7b7}
+.rev-btns button:disabled{opacity:.45}
+.rev-note{font-size:18px;color:#4b5563;background:#fff;border-radius:12px;padding:8px 10px}
+.used-note{font-weight:800}
 </style>
 </head>
 <body>
@@ -38,12 +75,73 @@
     <button class="lv" data-l="basic">⭐ 基本（3 位，0–9 不重複）</button>
     <button class="lv" data-l="challenge">🔥 挑戰（4 位不重複）</button>
   </div>
-  <div class="panel settings">
-    <label><input type="checkbox" id="showRemain" checked> 顯示剩餘可能數</label>
-    <label id="showPoolLab"><input type="checkbox" id="showPool" checked> 顯示可能組合清單（支援層）</label>
-    <label class="hidden" id="repLab"><input type="checkbox" id="allowRep"> 允許數字重複（挑戰加料）</label>
-    <label class="hidden" id="limLab"><input type="checkbox" id="limit5"> 只准再猜 5 次（自我限制）</label>
+  <div class="panel settings hidden" id="chalSettings">
+    <label id="repLab"><input type="checkbox" id="allowRep"> 允許數字重複（挑戰加料）</label>
+    <label id="limLab"><input type="checkbox" id="limit5"> 只准再猜 5 次（自我限制）</label>
   </div>
+
+  <div class="panel" id="hintPanel">
+    <h2>提示工具</h2>
+    <p class="how">開啟提示不會扣分，也可以隨時關掉。選用哪一項都可以。</p>
+
+    <button type="button" class="htog" id="togAb" data-hint="ab" aria-pressed="false">
+      <span class="sw" aria-hidden="true"><i></i></span>
+      <span class="ht-text"><strong>A／B 意思提示</strong><span>顯示 A 和 B 的意思，並附一個簡單例子。</span></span>
+      <span class="ht-state">關閉</span>
+    </button>
+    <div id="boxAb" class="hint-box hidden">
+      <h3>A 和 B 的意思</h3>
+      <p><b>A</b>＝數字及位置都對。<br><b>B</b>＝數字對，但位置不對。</p>
+      <div class="ex">例如：假如密碼是 1 2 3，你猜 1 3 5，結果是 1A 1B。第一位的 1，數字和位置都對，所以是 1A；3 這個數字在密碼裏有，但位置不對，所以是 1B；5 不在密碼裏，所以不會計入 A 或 B。</div>
+    </div>
+
+    <button type="button" class="htog" id="togBoard" data-hint="board" aria-pressed="false">
+      <span class="sw" aria-hidden="true"><i></i></span>
+      <span class="ht-text"><strong>數字排除板</strong><span>自己把數字標記為「一定有」「一定沒有」或「未知」。系統不會代你填寫。</span></span>
+      <span class="ht-state">關閉</span>
+    </button>
+    <div id="boxBoard" class="hint-box hidden">
+      <h3>數字排除板</h3>
+      <p>點按數字，在「未知」「一定有」「一定沒有」之間循環標記。這是你自己的筆記，系統不會自動填寫或改動。</p>
+      <div class="board" id="board"></div>
+    </div>
+
+    <button type="button" class="htog" id="togRemain" data-hint="remain" aria-pressed="false">
+      <span class="sw" aria-hidden="true"><i></i></span>
+      <span class="ht-text"><strong>可能答案數目</strong><span>根據已有紀錄，只顯示還剩多少種可能，不會列出答案。</span></span>
+      <span class="ht-state">關閉</span>
+    </button>
+    <div id="boxRemain" class="hint-box hidden">
+      <h3>可能答案數目</h3>
+      <div class="remain-big" id="remainCount"></div>
+      <p>只顯示數目，不會列出是哪些答案。</p>
+    </div>
+
+    <button type="button" class="htog" id="togCompare" data-hint="compare" aria-pressed="false">
+      <span class="sw" aria-hidden="true"><i></i></span>
+      <span class="ht-text"><strong>紀錄比較提示</strong><span>把現在輸入的猜測和選定的一次紀錄相比，標示哪些位置或數字不同。只做標示，不判斷對錯。</span></span>
+      <span class="ht-state">關閉</span>
+    </button>
+    <div id="boxCompare" class="hint-box hidden">
+      <h3>紀錄比較</h3>
+      <p id="cmpHelp">先提出一次猜測，之後就可以選定一次紀錄來比較。只標示不同的地方，不會告訴你對不對。</p>
+      <div class="cmp-pick" id="cmpPick"></div>
+      <div class="cmp-sum" id="cmpSum"></div>
+    </div>
+
+    <button type="button" class="htog" id="togReveal" data-hint="reveal" aria-pressed="false">
+      <span class="sw" aria-hidden="true"><i></i></span>
+      <span class="ht-text"><strong>揭示一個位置</strong><span>本局只可以用一次，按下前會再請你確認。挑戰層建議先不用。不會顯示整個答案。</span></span>
+      <span class="ht-state">關閉</span>
+    </button>
+    <div id="boxReveal" class="hint-box hidden">
+      <h3>揭示一個位置</h3>
+      <p class="rev-note">本局只可以揭示一個位置的正確數字，而且只能用一次。挑戰層建議先不用。這裡不會顯示整個答案。</p>
+      <div class="rev-btns" id="revBtns"></div>
+      <p id="revResult"></p>
+    </div>
+  </div>
+
   <div class="panel">
     <div class="guess-now" id="curGuess"></div>
     <div class="pad" id="pad"></div>
@@ -55,9 +153,7 @@
     <div class="msg" id="fb">用螢幕數字鍵輸入，再提出猜測。沒有限時，不必趕。</div>
   </div>
   <div class="panel">
-    <h2>猜測紀錄</h2>
-    <div class="remain" id="remain"></div>
-    <div class="pool" id="pool"></div>
+    <h2 id="histTitle">猜測紀錄</h2>
     <table class="t hist" id="hist"><thead><tr><th>#</th><th>猜測</th><th>提示</th></tr></thead><tbody></tbody></table>
   </div>
   <footer class="teacher-entry"><button class="tbtn" id="teacherBtn">老師說明</button></footer>
@@ -65,16 +161,41 @@
 <div class="overlay hidden" id="ov"><div class="card" id="ovCard"></div></div>
 <script src="../js/common.js"></script>
 <script>
-const state={level:"support",len:3,digits:["1","2","3","4"],unique:true,secret:"",guess:[],hist:[],limit:0,games:0};
+const HINT_LABELS={
+  ab:"A／B 意思提示",
+  board:"數字排除板",
+  remain:"可能答案數目",
+  compare:"紀錄比較提示",
+  reveal:"揭示一個位置"
+};
+const MARK_LABELS=["？ 未知","✓ 一定有","✗ 一定沒有"];
+const MARK_CLASS=["unk","have","no"];
+const state={
+  level:"support",len:3,digits:["1","2","3","4"],unique:true,secret:"",
+  guess:[],hist:[],limit:0,games:0,
+  hintsOn:{ab:false,board:false,remain:false,compare:false,reveal:false},
+  hintsUsed:{ab:false,board:false,remain:false,compare:false,reveal:false},
+  marks:{},
+  compareIdx:-1,
+  lastCmp:"",
+  revealUsed:false,
+  revealPos:-1
+};
 
 function cfgFromLevel(){
-  if(state.level==="support"){state.len=3;state.digits=["1","2","3","4"];state.unique=true;state.limit=0;$("showPoolLab").classList.remove("hidden");$("repLab").classList.add("hidden");$("limLab").classList.add("hidden");$("showPool").checked=true;}
-  else if(state.level==="basic"){state.len=3;state.digits=["0","1","2","3","4","5","6","7","8","9"];state.unique=true;state.limit=0;$("showPoolLab").classList.add("hidden");$("repLab").classList.add("hidden");$("limLab").classList.add("hidden");}
-  else{state.len=4;state.digits=["0","1","2","3","4","5","6","7","8","9"];state.unique=!$("allowRep").checked;state.limit=$("limit5").checked?5:0;$("showPoolLab").classList.add("hidden");$("repLab").classList.remove("hidden");$("limLab").classList.remove("hidden");}
+  if(state.level==="support"){
+    state.len=3;state.digits=["1","2","3","4"];state.unique=true;state.limit=0;
+    $("chalSettings").classList.add("hidden");
+  }else if(state.level==="basic"){
+    state.len=3;state.digits=["0","1","2","3","4","5","6","7","8","9"];state.unique=true;state.limit=0;
+    $("chalSettings").classList.add("hidden");
+  }else{
+    state.len=4;state.digits=["0","1","2","3","4","5","6","7","8","9"];state.unique=!$("allowRep").checked;state.limit=$("limit5").checked?5:0;
+    $("chalSettings").classList.remove("hidden");
+  }
 }
 
 function scoreAB(secret,guess){
-  /* A：同位置同數字；B：數字對但位置不對。先算 A，再從剩餘配對 B。 */
   const s=secret.split(""),g=String(guess).split("");
   const usedS=Array(s.length).fill(false),usedG=Array(g.length).fill(false);
   let A=0,B=0;
@@ -111,19 +232,68 @@ function newSecret(){
   const pool=allCodes();
   return pool[Math.floor(Math.random()*pool.length)];
 }
+function markOnHintsUsed(){
+  Object.keys(state.hintsOn).forEach(k=>{
+    if(state.hintsOn[k] && k!=="reveal") state.hintsUsed[k]=true;
+  });
+}
+function resetHintUse(){
+  state.hintsUsed={ab:false,board:false,remain:false,compare:false,reveal:false};
+  state.marks={};
+  state.compareIdx=-1;
+  state.lastCmp="";
+  state.revealUsed=false;
+  state.revealPos=-1;
+}
 function newGame(){
   cfgFromLevel();
   state.secret=newSecret();
   state.guess=[];state.hist=[];
+  resetHintUse();
   renderAll();
   $("fb").className="msg";
   $("fb").textContent=`新一局開始：${state.len} 位數字${state.unique?"，不重複":"，可重複"}。沒有限時。學生頁不會公布答案。`;
 }
 
+function usedSentence(){
+  const order=["ab","board","remain","compare","reveal"];
+  const used=order.filter(k=>state.hintsUsed[k]).map(k=>HINT_LABELS[k]);
+  if(!used.length) return "本局用了：沒有使用提示工具。";
+  return "本局用了："+used.join("、")+"。";
+}
+
+function setHint(key,on){
+  state.hintsOn[key]=on;
+  if(on && key!=="reveal") state.hintsUsed[key]=true;
+  const btn=$("tog"+({ab:"Ab",board:"Board",remain:"Remain",compare:"Compare",reveal:"Reveal"}[key]));
+  if(btn){
+    btn.classList.toggle("on",on);
+    btn.setAttribute("aria-pressed",on?"true":"false");
+    btn.querySelector(".ht-state").textContent=on?"開啟":"關閉";
+  }
+  const box=$("box"+({ab:"Ab",board:"Board",remain:"Remain",compare:"Compare",reveal:"Reveal"}[key]));
+  if(box) box.classList.toggle("hidden",!on);
+  renderAll();
+}
+
+function renderToggles(){
+  Object.keys(state.hintsOn).forEach(k=>setHint(k,state.hintsOn[k]));
+}
+
 function renderGuess(){
   const el=$("curGuess");el.innerHTML="";
+  const ref=compareRef();
   for(let i=0;i<state.len;i++){
-    const d=document.createElement("div");d.className="gbox";d.textContent=state.guess[i]||"";el.appendChild(d);
+    const d=document.createElement("div");d.className="gbox";
+    const num=document.createElement("span");num.textContent=state.guess[i]||"";
+    d.appendChild(num);
+    if(state.hintsOn.compare&&ref&&state.guess[i]&&state.guess[i]!==ref.g[i]){
+      d.classList.add("diff");
+      const sm=document.createElement("small");
+      sm.textContent="不同";
+      d.appendChild(sm);
+    }
+    el.appendChild(d);
   }
 }
 function renderPad(){
@@ -138,41 +308,179 @@ function renderPad(){
 }
 function renderHist(){
   const tb=$("hist").querySelector("tbody");tb.innerHTML="";
+  const ref=compareRef();
   state.hist.forEach((h,i)=>{
     const tr=document.createElement("tr");
+    if(state.hintsOn.compare&&ref&&i===state.hist.indexOf(ref)) tr.className="cmp";
     tr.innerHTML=`<td>${i+1}</td><td style="letter-spacing:.2em;font-weight:900">${h.g.split("").join(" ")}</td><td class="ab">${h.A}A ${h.B}B</td>`;
     tb.appendChild(tr);
   });
-  const rem=remaining();
-  const showR=$("showRemain").checked;
-  $("remain").textContent=showR?`還有 ${rem.length} 種可能`:(state.hist.length?`已猜 ${state.hist.length} 次`:"尚未猜測");
-  const pool=$("pool");pool.innerHTML="";
-  if(state.level==="support"&&$("showPool").checked){
-    const all=allCodes();
-    const set={};rem.forEach(x=>set[x]=1);
-    all.forEach(c=>{
-      const i=document.createElement("i");i.textContent=c;if(!set[c]) i.className="off";pool.appendChild(i);
-    });
+  $("histTitle").textContent=state.hist.length?`猜測紀錄（已猜 ${state.hist.length} 次）`:"猜測紀錄";
+}
+
+function compareRef(){
+  if(!state.hist.length) return null;
+  let i=state.compareIdx;
+  if(i<0||i>=state.hist.length) i=state.hist.length-1;
+  return state.hist[i];
+}
+function digitSet(s){
+  const o={};
+  String(s).split("").forEach(ch=>{o[ch]=true;});
+  return o;
+}
+function compareSummary(cur,refStr){
+  if(!cur||!refStr) return "";
+  const lines=[];
+  const n=Math.max(cur.length,refStr.length);
+  for(let i=0;i<Math.min(cur.length,refStr.length);i++){
+    if(cur[i]!==refStr[i]) lines.push(`第 ${i+1} 個位置不同（那一次是 ${refStr[i]}）`);
+  }
+  if(cur.length===refStr.length){
+    const a=digitSet(cur),b=digitSet(refStr);
+    const onlyCur=Object.keys(a).filter(d=>!b[d]).sort();
+    const onlyRef=Object.keys(b).filter(d=>!a[d]).sort();
+    if(onlyCur.length) lines.push(`數字 ${onlyCur.join("、")} 在這一猜出現，在那一次沒有出現`);
+    if(onlyRef.length) lines.push(`數字 ${onlyRef.join("、")} 在那一次出現，在這一猜沒有出現`);
+  }
+  if(!lines.length) return "和選定的紀錄相比，已輸入的位置和數字都相同。（這只是和紀錄比較，不是判斷對錯。）";
+  return lines;
+}
+
+function renderBoard(){
+  const el=$("board");if(!el) return;
+  el.innerHTML="";
+  state.digits.forEach(n=>{
+    const m=state.marks[n]||0;
+    const b=document.createElement("button");
+    b.type="button";
+    b.className="cell "+MARK_CLASS[m];
+    b.setAttribute("data-digit",n);
+    b.innerHTML=`<span class="d">${n}</span><span class="st">${MARK_LABELS[m]}</span>`;
+    b.onclick=()=>{
+      state.marks[n]=((state.marks[n]||0)+1)%3;
+      state.hintsUsed.board=true;
+      renderBoard();
+    };
+    el.appendChild(b);
+  });
+}
+
+function renderRemain(){
+  if(!state.hintsOn.remain) return;
+  const n=remaining().length;
+  $("remainCount").textContent=`還有 ${n} 種可能`;
+}
+
+function renderCompare(){
+  if(!state.hintsOn.compare) return;
+  const pick=$("cmpPick"),help=$("cmpHelp"),sum=$("cmpSum");
+  pick.innerHTML="";
+  if(!state.hist.length){
+    help.textContent="先提出一次猜測，之後就可以選定一次紀錄來比較。只標示不同的地方，不會告訴你對不對。";
+    sum.textContent="";
+    return;
+  }
+  help.textContent="請選一次紀錄，和現在輸入的猜測相比。只標示不同的位置或數字，不判斷對錯。";
+  const curIdx=(state.compareIdx>=0&&state.compareIdx<state.hist.length)?state.compareIdx:state.hist.length-1;
+  state.hist.forEach((h,i)=>{
+    const b=document.createElement("button");
+    b.type="button";
+    b.className=i===curIdx?"on":"";
+    b.textContent=`第 ${i+1} 次（${h.g.split("").join(" ")}）`;
+    b.onclick=()=>{state.compareIdx=i;state.hintsUsed.compare=true;renderAll();};
+    pick.appendChild(b);
+  });
+  const ref=compareRef();
+  const cur=state.guess.join("");
+  let html="";
+  if(cur){
+    const lines=compareSummary(cur,ref.g);
+    html=`<b>和「第 ${state.hist.indexOf(ref)+1} 次：${ref.g.split("").join(" ")}」相比：</b>`;
+    if(typeof lines==="string") html+=`<p>${lines}</p>`;
+    else html+="<ul>"+lines.map(x=>`<li>${x}</li>`).join("")+"</ul>";
+  }else{
+    html=`<p>現在還沒有輸入新猜測。已選定「第 ${state.hist.indexOf(ref)+1} 次：${ref.g.split("").join(" ")}」。開始輸入後，不同的位置會標示出來。</p>`;
+  }
+  if(state.lastCmp) html+=`<p>${state.lastCmp}</p>`;
+  sum.innerHTML=html;
+}
+
+function renderReveal(){
+  if(!state.hintsOn.reveal) return;
+  const el=$("revBtns");el.innerHTML="";
+  for(let i=0;i<state.len;i++){
+    const b=document.createElement("button");
+    b.type="button";
+    b.textContent=`看第 ${i+1} 個位置`;
+    b.disabled=state.revealUsed;
+    b.onclick=()=>confirmReveal(i);
+    el.appendChild(b);
+  }
+  const res=$("revResult");
+  if(state.revealUsed&&state.revealPos>=0){
+    res.innerHTML=`第 ${state.revealPos+1} 個位置的正確數字是 <b style="font-size:28px">${state.secret[state.revealPos]}</b>。本局已經用過一次，不能再揭示其他位置。`;
+  }else{
+    res.textContent="還沒有揭示任何位置。";
   }
 }
 
-function renderAll(){renderGuess();renderPad();renderHist();}
+function confirmReveal(i){
+  if(state.revealUsed) return;
+  openCard(`<div><h2>再確認一次</h2>
+    <p>確定要看第 ${i+1} 個位置的正確數字嗎？本局只可以揭示一次，看了以後就不能再揭示其他位置。</p>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="yesRev">確定看這個位置</button>
+      <button class="btn" id="noRev">先不要</button>
+    </div></div>`);
+  $("yesRev").onclick=()=>{
+    state.revealUsed=true;
+    state.revealPos=i;
+    state.hintsUsed.reveal=true;
+    closeCard();
+    renderReveal();
+  };
+  $("noRev").onclick=closeCard;
+}
+
+function renderHintBodies(){
+  if(state.hintsOn.board) renderBoard();
+  if(state.hintsOn.remain) renderRemain();
+  if(state.hintsOn.compare) renderCompare();
+  if(state.hintsOn.reveal) renderReveal();
+}
+
+function renderAll(){
+  renderGuess();
+  renderPad();
+  renderHist();
+  renderHintBodies();
+}
 
 function submit(){
   if(state.guess.length!==state.len){$("fb").className="msg warn";$("fb").textContent=`請先輸入完整的 ${state.len} 位數字。`;return;}
   if(state.limit&&state.hist.length>=state.limit){$("fb").className="msg warn";$("fb").textContent="本局已達到你設定的 5 次限制。可以開新一局，或取消限制再試。";return;}
   const g=state.guess.join("");
+  markOnHintsUsed();
   const r=scoreAB(state.secret,g);
+  const prev=state.hist.length?state.hist[state.hist.length-1]:null;
   state.hist.push({g,A:r.A,B:r.B});
+  if(prev&&state.hintsOn.compare){
+    const lines=compareSummary(g,prev.g);
+    const head=`提交後：這一猜和第 ${state.hist.length-1} 次相比，`;
+    state.lastCmp=typeof lines==="string"?head+lines:head+lines.join("；")+"。";
+    state.hintsUsed.compare=true;
+  }
+  state.compareIdx=state.hist.length-1;
   state.guess=[];
   renderAll();
   if(r.A===state.len){
     state.games++;
     $("fb").className="msg ok";
-    $("fb").textContent=`猜中了！用了 ${state.hist.length} 次。可以再看紀錄：哪一次提示幫你刪除了最多可能？`;
+    $("fb").innerHTML=`猜中了！用了 ${state.hist.length} 次。<span class="used-note">${usedSentence()}</span>可以再看紀錄：哪一次提示幫你刪除了最多可能？`;
   }else{
     $("fb").className="msg";
-    $("fb").textContent=`提示：${r.A}A ${r.B}B。A＝數字與位置都對；B＝數字對、位置不對。看看紀錄，再決定下一猜要弄清楚什麼：是確認數字，還是確認位置？`;
+    $("fb").textContent=`提示：${r.A}A ${r.B}B。看看紀錄，再決定下一猜要弄清楚什麼：是確認數字，還是確認位置？`;
   }
 }
 
@@ -181,11 +489,12 @@ document.querySelectorAll(".lv").forEach(b=>b.onclick=()=>{
   document.querySelectorAll(".lv").forEach(x=>x.classList.toggle("on",x===b));
   newGame();
 });
+document.querySelectorAll(".htog").forEach(btn=>{
+  btn.onclick=()=>setHint(btn.dataset.hint,!state.hintsOn[btn.dataset.hint]);
+});
 $("submitBtn").onclick=submit;
 $("backBtn").onclick=()=>{state.guess.pop();renderAll();};
 $("newBtn").onclick=newGame;
-$("showRemain").onchange=renderHist;
-$("showPool").onchange=renderHist;
 $("allowRep").onchange=newGame;
 $("limit5").onchange=()=>{state.limit=$("limit5").checked?5:0;};
 
@@ -196,9 +505,18 @@ $("teacherBtn").onclick=()=>{
   <li>留下猜測紀錄，用提示排除，提出更有資訊的下一猜。</li>
   <li>與第 1 節分開：本節答案未知，不是用已知鑰匙變換文字。</li></ul>
   <h3>分層</h3>
-  <ul><li>支援：3 位、數字 1–4、不重複（共 24 種），可顯示清單讓學生劃掉。</li>
-  <li>基本：3 位、0–9、不重複。</li>
-  <li>挑戰：4 位不重複；可選允許重複，或自我限制 5 次。</li></ul>
+  <ul><li>支援：3 位、數字 1–4、不重複（共 24 種）。</li>
+  <li>基本：3 位、0–9、不重複（共 720 種）。</li>
+  <li>挑戰：4 位不重複（共 5040 種）；可選允許重複，或自我限制 5 次。</li></ul>
+  <h3>提示工具（學生可自行開關，預設全部關閉）</h3>
+  <p>開啟提示不會扣分，也沒有負面標籤。完成一局時會中性註明「本局用了：…」。學生畫面不列出可能答案，也不會一鍵公布整個密碼。</p>
+  <ul>
+    <li><b>A／B 意思提示</b>：重溫 A、B 的意思，並附簡單例子。支援層可鼓勵先開啟。</li>
+    <li><b>數字排除板</b>：學生自己把數字循環標記為「一定有／一定沒有／未知」，系統不自動填寫。支援層可鼓勵使用。</li>
+    <li><b>可能答案數目</b>：根據已有紀錄，只顯示還剩多少種可能，不列出答案。預設關閉。</li>
+    <li><b>紀錄比較提示</b>：把新猜測和上一次（或選定的一次）紀錄相比，只標示不同的位置或數字，不判斷對錯。</li>
+    <li><b>揭示一個位置</b>：每局只限一次，按下前要再確認，只揭示其中一個位置的正確數字。挑戰層建議先不用。不可顯示整個答案。</li>
+  </ul>
   <h3>教師核對</h3>
   <p>本局隱藏密碼：<b style="letter-spacing:.2em">${state.secret.split("").join(" ")}</b>（只有這個老師頁看得到，學生頁沒有「公布答案」按鈕。）剩餘可能：${remaining().length}。</p>
   <p>建議至少 2 局；不問手速。網址加 <code>?teacher=1</code> 可開此頁。</p>
@@ -211,19 +529,48 @@ if(isTeacherMode()) $("teacherBtn").click();
 (function selfTest(){
   const t=[
     ["123","123",3,0],
-    ["123","321",1,2],  // 中間 2 位置對，是 1A2B 不是 0A3B
+    ["123","321",1,2],
     ["123","145",1,0],
     ["123","156",1,0],
     ["123","352",0,2],
     ["123","213",1,2],
-    ["1123","1132",2,2], // repeats
+    ["1123","1132",2,2],
     ["1123","1111",2,0],
     ["1123","2111",1,2]
   ];
-  // For repeats test, temporarily ignore unique. scoreAB is independent.
   const bad=t.filter(([s,g,A,B])=>{const r=scoreAB(s,g);return r.A!==A||r.B!==B;});
-  if(bad.length) console.error("1A2B 自測失敗",bad.map(x=>({case:x,got:scoreAB(x[0],x[1])})));
-  else console.log("1A2B 自測全部通過",t.length);
+  const saved={level:state.level,len:state.len,digits:state.digits.slice(),unique:state.unique,hist:state.hist.slice(),secret:state.secret,guess:state.guess.slice()};
+  function countFor(level,unique){
+    const stash={level:state.level,len:state.len,digits:state.digits,unique:state.unique};
+    state.level=level;
+    if(level==="support"){state.len=3;state.digits=["1","2","3","4"];state.unique=true;}
+    else if(level==="basic"){state.len=3;state.digits=["0","1","2","3","4","5","6","7","8","9"];state.unique=true;}
+    else{state.len=4;state.digits=["0","1","2","3","4","5","6","7","8","9"];state.unique=unique;}
+    const n=allCodes().length;
+    Object.assign(state,stash);
+    return n;
+  }
+  const counts={
+    support:countFor("support",true),
+    basic:countFor("basic",true),
+    ch4u:countFor("challenge",true),
+    ch4r:countFor("challenge",false)
+  };
+  const countOk=counts.support===24&&counts.basic===720&&counts.ch4u===5040&&counts.ch4r===10000;
+  // remaining consistency: after a guess, every leftover code matches the same A/B, and secret remains
+  state.level="basic";state.len=3;state.digits=["0","1","2","3","4","5","6","7","8","9"];state.unique=true;
+  state.hist=[];state.secret="123";
+  state.hist=[{g:"135",A:1,B:1}];
+  const rem=remaining();
+  const remOk=rem.includes("123")&&rem.every(c=>{const r=scoreAB(c,"135");return r.A===1&&r.B===1;});
+  const d=compareSummary("145","123");
+  const cmpOk=Array.isArray(d)&&d.some(x=>x.includes("第 2 個位置不同"))&&d.some(x=>x.includes("第 3 個位置不同"));
+  Object.assign(state,{level:saved.level,len:saved.len,digits:saved.digits,unique:saved.unique,hist:saved.hist,secret:saved.secret,guess:saved.guess});
+  if(bad.length||!countOk||!remOk||!cmpOk){
+    console.error("1A2B 自測失敗",{bad:bad.map(x=>({case:x,got:scoreAB(x[0],x[1])})),counts,countOk,remOk,remN:rem.length,cmpOk,d});
+  }else{
+    console.log("1A2B 自測全部通過",t.length,"counts",counts);
+  }
 })();
 </script>
 </body>
