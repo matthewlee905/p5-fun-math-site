@@ -21,11 +21,13 @@ body{background:
 .dots i{width:14px;height:14px;border-radius:50%;display:block}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:12px}
 @media (max-width:720px){.grid{grid-template-columns:1fr}.hero h1{font-size:30px}}
-.gc{display:flex;flex-direction:column;background:#fff;border-radius:24px;padding:16px 16px 14px;box-shadow:var(--shadow);border-top:10px solid #fb923c;min-height:230px;text-decoration:none;color:inherit}
+.gc{display:flex;flex-direction:column;background:#fff;border-radius:24px;padding:16px 16px 14px;box-shadow:var(--shadow);border-top:10px solid #fb923c;min-height:0;text-decoration:none;color:inherit}
 .gc:active{transform:translateY(2px)}
 .gc .num{font-weight:900;font-size:15px;letter-spacing:1px}
 .gc h2{margin:4px 0 8px;font-size:26px}
-.gc .goal{flex:1;font-size:17px;line-height:1.5;color:#374151;margin:0 0 12px}
+.gc .goal{flex:1;font-size:17px;line-height:1.5;color:#374151;margin:0 0 8px}
+.gc .obj{margin:0 0 10px;font-size:14px;line-height:1.45;color:#4338ca;font-weight:600}
+.gc .obj .k{font-weight:800}
 .gc .go{min-height:52px;border-radius:16px;font-size:20px;font-weight:800;display:flex;align-items:center;justify-content:center;background:#fff7ed}
 .gc.s1{border-color:#fb923c}.gc.s1 .num{color:#c2410c}.gc.s1 .go{background:#ffedd5;color:#9a3412}
 .gc.s2{border-color:#60a5fa}.gc.s2 .num{color:#1d4ed8}.gc.s2 .go{background:#dbeafe;color:#1e3a8a}
@@ -58,6 +60,7 @@ body{background:
       <div class="num">第 1 節</div>
       <h2>密碼解碼員</h2>
       <p class="goal">明白什麼是加密、什麼是解密；用同一把鑰匙親手把明文變成密文，再把密文還原成明文。</p>
+      <p class="obj"><span class="k">學習目標：</span>我能夠找出字母移位的規律，用同一把鑰匙把明文變成密文，再把密文還原成明文，並說出加密和解密有什麼不同。</p>
       <div class="go">開始遊戲 →</div>
     </a>
     <a class="gc s2" href="02-knights/index.html">
@@ -65,6 +68,7 @@ body{background:
       <div class="num">第 2 節</div>
       <h2>老實人與大話王</h2>
       <p class="goal">根據陳述判斷誰是老實人（永遠說真話）、誰是大話王（永遠說假話）；先假設再檢查有沒有說不通。</p>
+      <p class="obj"><span class="k">學習目標：</span>我能夠先假設誰是老實人、誰是大話王，再根據陳述檢查這個假設說不說得通。</p>
       <div class="go">開始遊戲 →</div>
     </a>
     <a class="gc s3" href="03-1a2b/index.html">
@@ -72,6 +76,7 @@ body{background:
       <div class="num">第 3 節</div>
       <h2>終極密碼</h2>
       <p class="goal">根據 A（數字與位置都對）和 B（數字對、位置不對）記錄、排除，提出更有用的下一猜。</p>
+      <p class="obj"><span class="k">學習目標：</span>我能夠根據 A 和 B 的提示，有系統地排除不可能的答案，並提出更有用的下一猜。</p>
       <div class="go">開始遊戲 →</div>
     </a>
     <a class="gc s4" href="04-trust/index.html">
@@ -79,6 +84,7 @@ body{background:
       <div class="num">第 4 節</div>
       <h2>信任的進化</h2>
       <p class="goal">爭取最高分數！和同學連玩數輪「小食交換」，每輪各自選「分一半」或「自己食」，想辦法令自己得到最高分數。</p>
+      <p class="obj"><span class="k">學習目標：</span>我能夠在「小食交換」中讀懂得分表，比較不同選擇下自己和兩人合計的分數，並想辦法爭取最高分數。</p>
       <div class="go">開始遊戲 →</div>
     </a>
     <a class="gc s5" href="05-map-coloring/index.html">
@@ -86,6 +92,7 @@ body{background:
       <div class="num">第 5 節</div>
       <h2>地圖著色戰線</h2>
       <p class="goal">相鄰區域（共邊才算，只碰一角不算）必須不同色；透過不斷嘗試，找出每幅地圖最少要用幾種顏色。</p>
+      <p class="obj"><span class="k">學習目標：</span>我能夠按照「共邊必須不同色、只碰一角不算」的規則為地圖著色，並透過嘗試，比較用了幾種顏色，看看能不能用更少的顏色完成。</p>
       <div class="go">開始遊戲 →</div>
     </a>
     <a class="gc s6" href="06-pig/index.html">
@@ -93,6 +100,7 @@ body{background:
       <div class="num">第 6 節</div>
       <h2>豪賭客（Pig 骰子）</h2>
       <p class="goal">回合中選擇再擲或停手把分數入袋；擲到 1 則本輪歸零。先玩再思考「為什麼有時該停」。</p>
+      <p class="obj"><span class="k">學習目標：</span>我能夠比較「再擲」和「停手把分數入袋」兩種選擇的得失，並根據本輪分數和紀錄，思考什麼時候該停。</p>
       <div class="go">開始遊戲 →</div>
     </a>
   </div>
@@ -105,6 +113,7 @@ body{background:
       <li>請用 Safari 打開（iPad 可在「檔案」選這個資料夾，再分享 → 用 Safari 開啟），不要只在預覽畫面觀看。</li>
       <li>學生介面不收集姓名、班別或電郵。教師核對頁可在各遊戲加 <code>?teacher=1</code>，或按頁尾低調的「老師說明」。</li>
       <li>每節 50 分鐘。不要把「打完所有關卡」當成目標；留下思考痕跡、能向同學解釋即可。</li>
+      <li>各遊戲頁在「任務目的」前有「學習目標」（「我能夠……」一句，強調能力、不預先揭示結論）；總覽卡片亦有同一句細字。</li>
     </ul>
   </section>
   <footer class="site">校本靜態課件　・　免登入、可離線　・　全繁體中文</footer>

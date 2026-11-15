@@ -44,6 +44,12 @@ a{color:var(--blue)}
 .brand h1{margin:0;font-size:28px;letter-spacing:.5px;line-height:1.25}
 .brand .lesson{display:inline-block;font-size:15px;font-weight:800;background:#fff;border-radius:999px;padding:4px 12px;margin-right:6px;box-shadow:var(--shadow);color:#c2410c}
 
+/* 學習目標：與任務目的區分，不可按 */
+.learn-goal{background:#eef2ff;border:3px solid #a5b4fc;border-radius:18px;padding:12px 16px;margin:10px 0 8px;box-shadow:none;cursor:default;-webkit-user-select:none;user-select:none;outline:none}
+.learn-goal .lab{font-size:14px;font-weight:800;letter-spacing:1px;color:#4338ca;margin:0 0 4px}
+.learn-goal p{margin:0;font-size:20px;line-height:1.55;font-weight:650;color:#1e1b4b}
+.learn-goal + .mission{margin-top:8px}
+
 /* 任務目的：必須顯眼 */
 .mission{background:#fff;border:3px solid #fb923c;border-radius:18px;padding:12px 16px;margin:10px 0 14px;box-shadow:var(--shadow)}
 .mission .lab{font-size:14px;font-weight:800;letter-spacing:1px;color:#c2410c;margin:0 0 4px}
@@ -108,5 +114,5 @@ input:focus,textarea:focus,select:focus{outline:3px solid #fdba74;border-color:#
 
 @media (max-width:700px){
   .brand h1{font-size:24px}
-  .mission p{font-size:18px}
+  .mission p,.learn-goal p{font-size:18px}
 }

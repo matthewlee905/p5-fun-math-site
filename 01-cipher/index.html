@@ -16,9 +16,10 @@
 .pair .to{color:#1d4ed8}
 .shift-box{display:flex;align-items:center;justify-content:center;gap:10px;margin:8px 0}
 .shift-box .n{font-size:40px;font-weight:900;min-width:64px;text-align:center;color:#c2410c}
-.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
-.tab{min-height:48px;padding:8px 14px;border-radius:14px;font-size:17px;font-weight:800;background:#fff;border:3px solid #fed7aa}
-.tab.on{background:#ffedd5;border-color:#fb923c}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 4px}
+.tab{min-height:48px;padding:8px 16px;border-radius:14px;font-size:18px;font-weight:800;background:#fff;color:#9a3412;border:3px solid #ea580c;box-shadow:0 3px 0 #c2410c;cursor:pointer}
+.tab.on{background:#ea580c;color:#fff;border-color:#c2410c;font-weight:900;text-decoration:underline;text-underline-offset:4px;box-shadow:0 3px 0 #7c2d12}
+.tab:active{transform:translateY(2px);box-shadow:0 1px 0 #c2410c}
 .letters{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
 .letters button{width:44px;height:44px;min-height:44px;border-radius:10px;font-size:18px;font-weight:900;background:#fff;border:2px solid #e7d3ae}
 .letters button.on{background:#fb923c;color:#fff;border-color:#c2410c}
@@ -33,9 +34,11 @@
 .pig-cell{background:#fff;border:2px solid #e7d3ae;border-radius:10px;padding:6px;text-align:center;font-weight:800}
 .pig-cell svg{width:40px;height:40px;margin:0 auto}
 .warn-han{background:#fff1f2;border:3px solid #fb7185;border-radius:14px;padding:10px 12px;font-size:18px;margin:8px 0}
-.progress{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
-.progress .p{background:#fff;border-radius:999px;padding:8px 12px;font-weight:800;border:2px solid #e7d3ae}
-.progress .p.done{background:#d1fae5;border-color:#059669}
+.progress{display:block;margin:2px 0 14px;padding:0;border:none;background:transparent;box-shadow:none;font-size:17px;line-height:1.55;font-weight:600;color:#4b5563;cursor:default;-webkit-user-select:none;user-select:none}
+.progress .progress-title{font-weight:700;color:#374151}
+.progress .prog-item{display:inline;margin:0 .55em 0 0;padding:0;border:none;border-radius:0;background:none;box-shadow:none;font-weight:600;color:#4b5563;cursor:default}
+.progress .prog-item.done{color:#047857;font-weight:800}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 </style>
 </head>
 <body>
@@ -44,6 +47,10 @@
   <div class="topbar">
     <a class="back" href="../index.html">← 返回總覽</a>
     <div class="brand"><h1><span class="lesson">第 1 節</span>密碼解碼員</h1></div>
+  </div>
+  <div class="learn-goal" role="note">
+    <div class="lab">🎯 學習目標</div>
+    <p>我能夠找出字母移位的規律，用同一把鑰匙把明文變成密文，再把密文還原成明文，並說出加密和解密有什麼不同。</p>
   </div>
   <div class="mission">
     <div class="lab">任務目的</div>
@@ -55,12 +62,8 @@
     <button class="lv" data-l="basic">⭐ 基本（加密＋解密）</button>
     <button class="lv" data-l="challenge">🔥 挑戰（較長詞／未知鑰匙）</button>
   </div>
-  <div class="progress">
-    <span class="p" id="doneEnc">加密一次：尚未完成</span>
-    <span class="p" id="doneDec">解密一次：尚未完成</span>
-  </div>
-
-  <div class="tabs" id="tabs"></div>
+  <div class="tabs" id="tabs" role="tablist" aria-label="練習分頁"></div>
+  <p class="progress" id="progress" role="status" aria-live="polite" aria-atomic="true"></p>
   <div id="main"></div>
 
   <footer class="teacher-entry"><button class="tbtn" id="teacherBtn">老師說明</button></footer>
@@ -103,8 +106,14 @@ function renderTabs(){
   if(state.level==="challenge") tabs.push({id:"unknown",n:"未知鑰匙"},{id:"pigpen",n:"豬圈延伸"});
   const el=$("tabs");el.innerHTML="";
   tabs.forEach(t=>{
-    const b=document.createElement("button");b.className="tab"+(state.mode===t.id?" on":"");b.textContent=t.n;
-    b.onclick=()=>{state.mode=t.id;state.showAns=false;render();};el.appendChild(b);
+    const b=document.createElement("button");
+    b.type="button";
+    b.className="tab"+(state.mode===t.id?" on":"");
+    b.textContent=t.n;
+    b.setAttribute("role","tab");
+    b.setAttribute("aria-selected",state.mode===t.id?"true":"false");
+    b.onclick=()=>{state.mode=t.id;state.showAns=false;render();};
+    el.appendChild(b);
   });
   if(!tabs.some(t=>t.id===state.mode)) state.mode="wheel";
 }
@@ -419,10 +428,16 @@ function bindPractice(){
 }
 
 function updateProgress(){
-  const a=$("doneEnc"),b=$("doneDec");
-  a.textContent=state.doneEnc?"加密一次：已完成 ✓":"加密一次：尚未完成";
-  b.textContent=state.doneDec?"解密一次：已完成 ✓":"解密一次：尚未完成";
-  a.classList.toggle("done",state.doneEnc);b.classList.toggle("done",state.doneDec);
+  const el=$("progress");
+  if(!el) return;
+  const encMark=state.doneEnc?"✅":"⬜";
+  const decMark=state.doneDec?"✅":"⬜";
+  const encWord=state.doneEnc?"已完成":"尚未完成";
+  const decWord=state.doneDec?"已完成":"尚未完成";
+  el.innerHTML=`<span class="progress-title">我的進度：</span>`+
+    `<span class="prog-item${state.doneEnc?" done":""}" id="doneEnc"><span aria-hidden="true">${encMark}</span> 加密一次<span class="sr-only">${encWord}</span></span>`+
+    `<span class="prog-item${state.doneDec?" done":""}" id="doneDec"><span aria-hidden="true">${decMark}</span> 解密一次<span class="sr-only">${decWord}</span></span>`;
+  el.setAttribute("aria-label",`我的進度：加密一次${encWord}，解密一次${decWord}`);
 }
 
 function render(){
@@ -464,6 +479,7 @@ function render(){
 function openTeacher(){
   openCard(`<div class="teacher"><h2>老師說明　第 1 節</h2>
   <h3>學習目標</h3>
+  <p>學生頁：「我能夠找出字母移位的規律，用同一把鑰匙把明文變成密文，再把密文還原成明文，並說出加密和解密有什麼不同。」</p>
   <ul><li>能說出：加密＝按約定規則把明文變成密文；解密＝用同一把鑰匙還原。</li>
   <li>每對都要親手做一次加密、一次解密（可用「交換密文」）。</li>
   <li>只處理 26 個大寫拉丁字母；不可直接加密漢字。</li></ul>
