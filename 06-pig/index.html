@@ -2,7 +2,7 @@
 <html lang="zh-Hant-HK">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>第 6 節　豪賭客（Pig 骰子）</title>
 <link rel="stylesheet" href="../css/common.css">
@@ -24,11 +24,26 @@ body{background:linear-gradient(#fff7ed,#ecfeff) fixed}
 .pip.on{background:#0f172a}
 .ctrl{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
 .ctrl .btn{min-width:140px;min-height:60px;font-size:22px}
-.log{max-height:260px;overflow:auto;font-size:16px}
+.log{max-height:280px;overflow:auto;font-size:16px}
 .log li{margin:4px 0}
-.setrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.setrow select,.setrow input{min-height:48px;width:auto;display:inline-block}
+.setrow{display:flex;flex-direction:column;gap:14px}
+.setrow label.field{display:flex;flex-direction:column;align-items:flex-start;gap:6px;font-size:20px;font-weight:700}
+.setrow input[type=number],.setrow select,.cmp input[type=number]{min-height:52px;min-width:160px;font-size:22px;border:2px solid #fdba74;border-radius:14px;padding:8px 12px;width:auto;display:inline-block;background:#fff}
 .pig{font-size:42px}
+.plan{border:2px dashed #fdba74;border-radius:18px;padding:12px 14px;background:#fff7ed}
+.plan legend{font-size:20px;font-weight:800;padding:0 8px}
+.plan label{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-height:48px;font-size:18px;font-weight:650;margin:4px 0}
+.plan input[type=radio]{width:22px;height:22px}
+.hint-box{background:#ecfeff;border:2px solid #67e8f9;border-radius:16px;padding:10px 14px;font-size:18px;line-height:1.5;text-align:center}
+.rec-table{width:100%;border-collapse:collapse;font-size:16px;margin-top:8px}
+.rec-table th,.rec-table td{border:1px solid #e5e7eb;padding:8px 10px;text-align:left}
+.rec-table th{background:#fff7ed}
+.plansum{font-size:18px;line-height:1.6;margin:0 0 8px}
+.err{color:#b91c1c;font-size:18px;font-weight:700;min-height:24px}
+.cmp{background:#f5f3ff;border:2px dashed #c4b5fd;border-radius:18px;padding:12px 14px}
+.cmp h3{margin:0 0 8px;font-size:20px}
+.cmp .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.play-lock .ctrl .btn{pointer-events:none;opacity:.45}
 </style>
 </head>
 <body>
@@ -40,64 +55,95 @@ body{background:linear-gradient(#fff7ed,#ecfeff) fixed}
   </div>
   <div class="learn-goal" role="note">
     <div class="lab">🎯 學習目標</div>
-    <p>我能夠比較「再擲」和「停手把分數入袋」兩種選擇的得失，並根據本輪分數和紀錄，思考什麼時候該停。</p>
+    <p>我能夠根據可能發生的結果比較風險和得益，判斷甚麼時候應該停。</p>
   </div>
   <div class="mission">
     <div class="lab">任務目的</div>
-    <p>① 輪流擲骰子：可以再擲，或停手把本輪分數放入分數袋。<br>② 如果擲到 1，本輪分數會全部清掉。<br>③ 誰先到達目標分數（預設 50 分）就算完成。支援層本輪到 15 分就必須停。</p>
+    <p>① 開始前，和同學一起定下目標分數，也可以定下自己的停手分數。<br>② 輪流擲骰子：可以再擲，或停手把本輪分數放入分數袋。<br>③ 如果擲到 1，本輪分數會全部清掉。<br>④ 誰先到達目標分數就算完成。</p>
   </div>
   <div class="levels">
-    <button class="lv on" data-l="support">🌱 支援（到 15 必須停）</button>
-    <button class="lv" data-l="basic">⭐ 基本（到 20 可選必須停）</button>
-    <button class="lv" data-l="challenge">🔥 挑戰（比較兩種停手規則）</button>
+    <button class="lv on" data-l="support">🌱 支援</button>
+    <button class="lv" data-l="basic">⭐ 基本</button>
+    <button class="lv" data-l="challenge">🔥 挑戰</button>
   </div>
-  <div class="panel setrow">
-    <label>目標分數
-      <select id="goal"><option value="50" selected>50</option><option value="30">30</option><option value="100">100</option></select>
+
+  <div class="panel setrow" id="setupPanel">
+    <h2>開局設定</h2>
+    <p>開始前，先和同學一起定下目標分數；也可以為每位玩家定下自己的停手分數。未設定目標分數不能開始。</p>
+    <label class="field">目標分數（請輸入 10 至 200 的整數）
+      <input id="goal" type="number" min="10" max="200" inputmode="numeric" placeholder="請輸入" value="">
     </label>
-    <label>必須停手門檻
-      <select id="mustHold">
-        <option value="0">不強制</option>
-        <option value="15">本輪到 15 必須停</option>
-        <option value="20">本輪到 20 必須停</option>
-      </select>
-    </label>
-    <label>對手
+    <label class="field">對手
       <select id="opp">
         <option value="friend" selected>同機兩人對戰</option>
         <option value="solo">只記錄自己練習</option>
-        <option value="cpu">可選：對簡單電腦（到 20 停）</option>
+        <option value="cpu">可選：對簡單電腦</option>
       </select>
     </label>
-    <button class="btn btn-ghost" id="newBtn">開新一局</button>
-    <button class="btn btn-ghost" id="compareBtn">挑戰：比較兩種停手規則</button>
-  </div>
-
-  <div class="board">
-    <div class="player on" id="p0"><span class="pig" aria-hidden="true">🐷</span><h2 id="n0">同學 A</h2>
-      <div class="bag">分數袋</div><div class="total" id="t0">0</div>
-      <div>本輪暫存</div><div class="turn" id="u0">0</div>
-    </div>
-    <div class="player" id="p1"><span class="pig" aria-hidden="true">🐷</span><h2 id="n1">同學 B</h2>
-      <div class="bag">分數袋</div><div class="total" id="t1">0</div>
-      <div>本輪暫存</div><div class="turn" id="u1">0</div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="dice-area">
-      <div class="die" id="die" aria-label="骰子"></div>
-      <div class="msg" id="fb">輪到同學 A：可以按「再擲」，或把本輪分數放入分數袋。</div>
-      <div class="ctrl">
-        <button class="btn btn-blue" id="rollBtn">🎲 再擲</button>
-        <button class="btn btn-yellow" id="holdBtn">👜 停手，放入分數袋</button>
+    <fieldset class="plan" id="plan0">
+      <legend>玩家 1 的停手打算</legend>
+      <label><input type="radio" name="stop0" value="plan"> 我打算本輪到 <input id="stop0n" type="number" min="1" max="200" inputmode="numeric" placeholder="分" value=""> 分就停</label>
+      <label><input type="radio" name="stop0" value="free"> 不設，每次自己決定</label>
+    </fieldset>
+    <fieldset class="plan" id="plan1">
+      <legend id="plan1leg">玩家 2 的停手打算</legend>
+      <label><input type="radio" name="stop1" value="plan"> 我打算本輪到 <input id="stop1n" type="number" min="1" max="200" inputmode="numeric" placeholder="分" value=""> 分就停</label>
+      <label><input type="radio" name="stop1" value="free"> 不設，每次自己決定</label>
+    </fieldset>
+    <div class="cmp hidden" id="compareBox">
+      <h3>比較兩種停手規則</h3>
+      <p>請自己輸入兩個停手分數（不要先填建議值）。開始比較後，玩家 1、玩家 2 會分別用這兩個打算；到達時只會提醒，不會強迫停手。</p>
+      <div class="row">
+        <label>停手分數甲 <input id="cmpA" type="number" min="1" max="200" inputmode="numeric" placeholder="請輸入" value=""></label>
+        <label>停手分數乙 <input id="cmpB" type="number" min="1" max="200" inputmode="numeric" placeholder="請輸入" value=""></label>
+        <button class="btn btn-ghost" type="button" id="applyCmp">用這兩個打算開始比較</button>
       </div>
     </div>
+    <p class="err" id="setupErr"></p>
+    <div class="ctrl" style="justify-content:flex-start">
+      <button class="btn btn-blue" id="startBtn">開始這一局</button>
+    </div>
   </div>
 
-  <div class="panel">
-    <h2>擲／停紀錄</h2>
-    <ol class="log" id="log"></ol>
+  <div id="playArea" class="hidden">
+    <div class="board">
+      <div class="player on" id="p0"><span class="pig" aria-hidden="true">🐷</span><h2 id="n0">玩家 1</h2>
+        <div class="bag">分數袋</div><div class="total" id="t0">0</div>
+        <div>本輪暫存</div><div class="turn" id="u0">0</div>
+        <div class="bag" id="planLab0"></div>
+      </div>
+      <div class="player" id="p1"><span class="pig" aria-hidden="true">🐷</span><h2 id="n1">玩家 2</h2>
+        <div class="bag">分數袋</div><div class="total" id="t1">0</div>
+        <div>本輪暫存</div><div class="turn" id="u1">0</div>
+        <div class="bag" id="planLab1"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="dice-area">
+        <div class="die" id="die" aria-label="骰子"></div>
+        <div class="hint-box hidden" id="supportHint"></div>
+        <div class="msg" id="fb">請先完成開局設定。</div>
+        <div class="ctrl">
+          <button class="btn btn-blue" id="rollBtn">🎲 再擲</button>
+          <button class="btn btn-yellow" id="holdBtn">👜 停手，放入分數袋</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>擲／停紀錄</h2>
+      <div class="plansum" id="planSum"></div>
+      <table class="rec-table" id="recTable">
+        <thead><tr><th>玩家</th><th>輪</th><th>結果</th></tr></thead>
+        <tbody id="recBody"></tbody>
+      </table>
+      <ol class="log" id="log"></ol>
+    </div>
+
+    <div class="ctrl" style="margin:12px 0 0">
+      <button class="btn btn-ghost" id="newBtn">開新一局（返回設定）</button>
+    </div>
   </div>
 
   <footer class="teacher-entry"><button class="tbtn" id="teacherBtn">老師說明</button></footer>
@@ -107,15 +153,23 @@ body{background:linear-gradient(#fff7ed,#ecfeff) fixed}
 <script>
 const PIP=[[], [4],[0,8],[0,4,8],[0,2,6,8],[0,2,4,6,8],[0,2,3,5,6,8]];
 const state={
-  level:"support",goal:50,mustHold:15,opp:"friend",
-  tot:[0,0],turn:0,cur:0,over:false,log:[],last:null,busy:false
+  started:false,level:"support",goal:null,opp:"friend",
+  stopMode:[null,null],stopAt:[null,null],
+  tot:[0,0],turn:0,cur:0,over:false,log:[],busy:false,
+  rollsThisTurn:0,rounds:[[],[]],reminded:false,compare:false
 };
 
 function nameOf(i){
-  if(state.opp==="solo") return i===0?"練習者":"（此模式只有一人）";
-  if(state.opp==="cpu") return i===0?"同學":"電腦（到 20 停）";
-  return i===0?"同學 A":"同學 B";
+  if(state.opp==="solo") return i===0?"玩家 1":"（此模式只有一人）";
+  if(state.opp==="cpu") return i===0?"玩家 1":"電腦";
+  return i===0?"玩家 1":"玩家 2";
 }
+function planText(i){
+  if(state.stopMode[i]==="plan" && state.stopAt[i]) return "本輪到 "+state.stopAt[i]+" 分就停（只提醒，不強迫）";
+  if(state.stopMode[i]==="free") return "不設，每次自己決定";
+  return "尚未設定";
+}
+function nPlayers(){return state.opp==="solo"?1:2;}
 
 function drawDie(n){
   const d=$("die");d.innerHTML="";
@@ -123,39 +177,114 @@ function drawDie(n){
     const s=document.createElement("i");s.className="pip"+(n&&PIP[n].indexOf(i)!==-1?" on":"");d.appendChild(s);
   }
 }
-function log(msg){
-  state.log.unshift(msg);
-  const el=$("log");el.innerHTML=state.log.map(x=>`<li>${x}</li>`).join("");
+function renderLog(){
+  $("planSum").innerHTML=["玩家 1","玩家 2"].slice(0,nPlayers()).map((n,i)=>`${nameOf(i)}　停手打算：${planText(i)}`).join("<br>");
+  const rows=[];
+  for(let i=0;i<nPlayers();i++){
+    state.rounds[i].forEach((r,k)=>{
+      const res=r.type==="bust"?`擲到 1，清零（本輪暫存 ${r.lost} 分沒有了，擲了 ${r.rolls} 次）`:`入袋 ${r.pts} 分（擲了 ${r.rolls} 次）`;
+      rows.push(`<tr><td>${nameOf(i)}</td><td>第 ${k+1} 輪</td><td>${res}</td></tr>`);
+    });
+  }
+  $("recBody").innerHTML=rows.join("")||`<tr><td colspan="3">尚未有完成的輪次。</td></tr>`;
+  $("log").innerHTML=state.log.map(x=>`<li>${x}</li>`).join("");
+}
+function supportHint(){
+  const box=$("supportHint");
+  if(state.level!=="support"||!state.started){box.classList.add("hidden");return;}
+  box.classList.remove("hidden");
+  box.textContent=`本輪已擲 ${state.rollsThisTurn} 次。骰子有 6 面，其中 1 面是 1。`;
+}
+function atStopPlan(){
+  return state.stopMode[state.cur]==="plan" && state.stopAt[state.cur] && state.turn>=state.stopAt[state.cur];
 }
 function render(){
   $("n0").textContent=nameOf(0);$("n1").textContent=nameOf(1);
   $("t0").textContent=state.tot[0];$("t1").textContent=state.tot[1];
   $("u0").textContent=state.cur===0?state.turn:0;$("u1").textContent=state.cur===1?state.turn:0;
-  $("p0").classList.toggle("on",!state.over&&state.cur===0);
-  $("p1").classList.toggle("on",!state.over&&state.cur===1);
+  $("p0").classList.toggle("on",state.started&&!state.over&&state.cur===0);
+  $("p1").classList.toggle("on",state.started&&!state.over&&state.cur===1);
   $("p1").style.display=state.opp==="solo"?"none":"";
-  const must=state.mustHold>0&&state.turn>=state.mustHold;
-  $("rollBtn").disabled=state.over||state.busy||must||(state.opp==="cpu"&&state.cur===1);
-  $("holdBtn").disabled=state.over||state.busy||state.turn===0||(state.opp==="cpu"&&state.cur===1);
-  if(state.over) return;
-  if(must) $("fb").textContent=`本輪已有 ${state.turn} 分，達到「到 ${state.mustHold} 必須停」的設定，請放入分數袋。`;
+  $("planLab0").textContent="打算："+(state.stopMode[0]==="plan"?"本輪到 "+state.stopAt[0]+" 分就停":"每次自己決定");
+  $("planLab1").textContent="打算："+(state.stopMode[1]==="plan"?"本輪到 "+state.stopAt[1]+" 分就停":"每次自己決定");
+  const cpuTurn=state.opp==="cpu"&&state.cur===1;
+  $("rollBtn").disabled=!state.started||state.over||state.busy||cpuTurn;
+  $("holdBtn").disabled=!state.started||state.over||state.busy||state.turn===0||cpuTurn;
+  supportHint();
+  renderLog();
 }
 
-function newGame(){
-  state.goal=+$("goal").value;
-  state.mustHold=+$("mustHold").value;
+function chosenRadio(name){
+  const el=document.querySelector(`input[name="${name}"]:checked`);
+  return el?el.value:null;
+}
+function parseIntIn(id,min,max){
+  const raw=String($(id).value||"").trim();
+  if(raw==="") return null;
+  const n=Number(raw);
+  if(!Number.isInteger(n)||n<min||n>max) return false;
+  return n;
+}
+function validateSetup(){
+  const goal=parseIntIn("goal",10,200);
+  if(goal===null) return "請先設定目標分數（10 至 200 的整數），才能開始。";
+  if(goal===false) return "目標分數請輸入 10 至 200 的整數。";
+  const opp=$("opp").value;
+  const need=[0];
+  if(opp!=="solo") need.push(1);
+  for(const i of need){
+    const mode=chosenRadio("stop"+i);
+    if(!mode) return `請為${i===0?"玩家 1":(opp==="cpu"?"電腦（或替它選一個打算）":"玩家 2")}選擇停手打算：設定本輪到多少分就停，或選擇「不設，每次自己決定」。`;
+    if(mode==="plan"){
+      const n=parseIntIn("stop"+i+"n",1,200);
+      if(n===null) return "已選擇「我打算本輪到 __ 分就停」，請填上一個 1 至 200 的整數。";
+      if(n===false) return "停手分數請輸入 1 至 200 的整數。";
+    }
+  }
+  return "";
+}
+function readPlans(){
+  const modes=[], ats=[];
+  for(let i=0;i<2;i++){
+    const mode=chosenRadio("stop"+i)||"free";
+    modes[i]=mode;
+    ats[i]=mode==="plan"?parseIntIn("stop"+i+"n",1,200):null;
+  }
+  return {modes,ats};
+}
+function startGame(){
+  const err=validateSetup();
+  $("setupErr").textContent=err;
+  if(err) return false;
+  const plans=readPlans();
+  state.started=true;
+  state.goal=parseIntIn("goal",10,200);
   state.opp=$("opp").value;
-  state.tot=[0,0];state.turn=0;state.cur=0;state.over=false;state.log=[];state.last=null;state.busy=false;
-  $("log").innerHTML="";drawDie(null);
+  state.stopMode=plans.modes;
+  state.stopAt=plans.ats;
+  state.tot=[0,0];state.turn=0;state.cur=0;state.over=false;state.log=[];state.busy=false;
+  state.rollsThisTurn=0;state.rounds=[[],[]];state.reminded=false;
+  $("setupPanel").classList.add("hidden");
+  $("playArea").classList.remove("hidden");
+  drawDie(null);
   $("fb").className="msg";
   $("fb").textContent=`新一局：先到 ${state.goal} 分。輪到 ${nameOf(0)}。課名只是趣味包裝，這裡沒有金錢或獎品。`;
-  log(`新一局開始，目標 ${state.goal} 分${state.mustHold?`，本輪到 ${state.mustHold} 必須停`:""}。`);
+  state.log.push(`新一局開始，目標 ${state.goal} 分。${nameOf(0)} 停手打算：${planText(0)}`+(state.opp!=="solo"?`；${nameOf(1)} 停手打算：${planText(1)}`:"")+"。");
   render();
+  return true;
+}
+function backToSetup(){
+  state.started=false;state.over=false;state.busy=false;state.turn=0;state.tot=[0,0];
+  $("playArea").classList.add("hidden");
+  $("setupPanel").classList.remove("hidden");
+  $("setupErr").textContent="";
+  $("fb").textContent="請先完成開局設定。";
+  drawDie(null);
 }
 
 function nextPlayer(){
-  state.turn=0;
-  if(state.opp==="solo"){state.cur=0;render();return;}
+  state.turn=0;state.rollsThisTurn=0;state.reminded=false;
+  if(state.opp==="solo"){state.cur=0;render();$("fb").className="msg";$("fb").textContent=`輪到 ${nameOf(0)}。`;return;}
   state.cur=1-state.cur;
   render();
   $("fb").className="msg";
@@ -165,28 +294,40 @@ function nextPlayer(){
 
 function rollValue(){return 1+Math.floor(Math.random()*6);}
 
+function maybeRemind(){
+  if(!atStopPlan()||state.reminded) return "";
+  state.reminded=true;
+  return "已到你定的停手分數";
+}
+
 function applyRoll(n){
   state.last=n;drawDie(n);
   $("die").classList.remove("shake");void $("die").offsetWidth;$("die").classList.add("shake");
   const who=nameOf(state.cur);
+  state.rollsThisTurn+=1;
   if(n===1){
-    log(`${who} 擲到 1。本輪暫存 ${state.turn} 分全部歸零，換人。`);
+    const lost=state.turn;
+    state.rounds[state.cur].push({type:"bust",lost:lost,rolls:state.rollsThisTurn});
+    state.log.unshift(`${who} 第 ${state.rounds[state.cur].length} 輪：擲到 1，清零（本輪暫存 ${lost} 分沒有了）。`);
     $("fb").className="msg warn";
-    $("fb").textContent=`擲到 1！本輪 ${state.turn} 分沒有了。換下一個人。`;
+    $("fb").textContent=`擲到 1！本輪 ${lost} 分沒有了。換下一個人。`;
     state.turn=0;render();
-    setTimeout(nextPlayer,700);
+    if(state._tm) clearTimeout(state._tm);
+    state._tm=setTimeout(()=>{state._tm=null; nextPlayer();},700);
   }else{
     state.turn+=n;
-    log(`${who} 擲到 ${n}，本輪暫存現在有 ${state.turn} 分。（分數袋仍是 ${state.tot[state.cur]}）`);
-    $("fb").className="msg";
-    $("fb").textContent=`擲到 ${n}。本輪暫存 ${state.turn} 分。再擲可能更高，但也有機會擲到 1 而全部失去。`;
+    state.log.unshift(`${who} 擲到 ${n}，本輪暫存現在有 ${state.turn} 分。（分數袋仍是 ${state.tot[state.cur]}）`);
+    const rem=maybeRemind();
+    $("fb").className=rem?"msg hint":"msg";
+    $("fb").textContent=rem
+      ? rem+"。本輪暫存 "+state.turn+" 分。可以再擲，或停手放入分數袋。"
+      : `擲到 ${n}。本輪暫存 ${state.turn} 分。再擲可能更高，但也有機會擲到 1 而全部失去。`;
     render();
   }
 }
 
 function doRoll(){
-  if(state.over||state.busy) return;
-  if(state.mustHold>0&&state.turn>=state.mustHold) return;
+  if(!state.started||state.over||state.busy) return;
   state.busy=true;$("rollBtn").disabled=true;$("holdBtn").disabled=true;
   let t=0,times=8;
   const iv=setInterval(()=>{drawDie(1+Math.floor(Math.random()*6));t++;
@@ -195,28 +336,36 @@ function doRoll(){
 }
 
 function doHold(){
-  if(state.over||state.busy||state.turn===0) return;
+  if(!state.started||state.over||state.busy||state.turn===0) return;
   const who=nameOf(state.cur);
-  state.tot[state.cur]+=state.turn;
-  log(`${who} 選擇停手，把 ${state.turn} 分放入分數袋。分數袋現在有 ${state.tot[state.cur]} 分。`);
+  const got=state.turn;
+  state.tot[state.cur]+=got;
+  state.rounds[state.cur].push({type:"bag",pts:got,rolls:state.rollsThisTurn});
+  state.log.unshift(`${who} 第 ${state.rounds[state.cur].length} 輪：入袋 ${got} 分。分數袋現在有 ${state.tot[state.cur]} 分。`);
   $("fb").className="msg ok";
-  $("fb").textContent=`${who} 把 ${state.turn} 分穩穩放進分數袋。現在袋裡有 ${state.tot[state.cur]} 分。`;
+  $("fb").textContent=`${who} 把 ${got} 分穩穩放進分數袋。現在袋裡有 ${state.tot[state.cur]} 分。`;
   state.turn=0;
   if(state.tot[state.cur]>=state.goal){
     state.over=true;render();
     $("fb").className="msg ok";
-    $("fb").textContent=`${who} 先到 ${state.goal} 分！回看紀錄，找一找「該考慮停」的時刻。這節和真賭博無關。`;
-    log(`${who} 先到目標 ${state.goal} 分。`);
+    $("fb").textContent=`${who} 先到 ${state.goal} 分！回看紀錄，比較大家的停手打算和每輪結果。這節和真賭博無關。`;
+    state.log.unshift(`${who} 先到目標 ${state.goal} 分。`);
+    renderLog();
     return;
   }
   nextPlayer();
 }
 
-function cpuPlay(){
-  if(state.over||state.cur!==1) return;
-  // 簡單策略：本輪到 20 或已足夠過線就停；否則再擲
+function cpuHoldThreshold(){
+  /* 內部策略，不在畫面顯示任何建議數字：夠過線就停，否則用目標的一小部分作為門檻。 */
   const need=state.goal-state.tot[1];
-  if(state.turn>=20 || (state.turn>0&&state.turn>=need) || (state.mustHold&&state.turn>=state.mustHold)){
+  const t=Math.max(8, Math.ceil(state.goal/4));
+  return Math.min(need, t);
+}
+function cpuPlay(){
+  if(state.over||state.cur!==1||state.opp!=="cpu") return;
+  const need=state.goal-state.tot[1];
+  if(state.turn>0 && (state.turn>=need || state.turn>=cpuHoldThreshold())){
     doHold();
   }else{
     doRoll();
@@ -229,48 +378,57 @@ function cpuPlay(){
 function setLevel(l){
   state.level=l;
   document.querySelectorAll(".lv").forEach(x=>x.classList.toggle("on",x.dataset.l===l));
-  $("goal").value="50";
-  if(l==="support") $("mustHold").value="15";
-  else if(l==="basic") $("mustHold").value="20";
-  else $("mustHold").value="0";
-  $("opp").value="friend";
-  newGame();
+  $("compareBox").classList.toggle("hidden", l!=="challenge");
+  if(state.started) backToSetup();
+  else supportHint();
+}
+function syncOppPlans(){
+  const solo=$("opp").value==="solo";
+  $("plan1").style.display=solo?"none":"";
+  $("plan1leg").textContent=$("opp").value==="cpu"?"電腦的停手打算（只作紀錄；電腦按自己的內部策略，畫面不會寫出建議數字）":"玩家 2 的停手打算";
 }
 document.querySelectorAll(".lv").forEach(b=>b.onclick=()=>setLevel(b.dataset.l));
-$("rollBtn").onclick=doRoll;$("holdBtn").onclick=doHold;$("newBtn").onclick=newGame;
-$("goal").onchange=$("mustHold").onchange=$("opp").onchange=newGame;
-
-$("compareBtn").onclick=()=>{
-  openCard(`<h2>比較兩種停手規則</h2>
-    <p>挑戰層建議：各玩一短局（目標可改 30 分）。一局用「本輪到 10 就停」，另一局用「到 20 才停」。不用公式，只要描述你的感覺：哪一種較常保住分數？樣本很小，只作感受。</p>
-    <div class="btn-row">
-      <button class="btn btn-blue" id="c10">用「到 10 必須停」開短局</button>
-      <button class="btn btn-yellow" id="c20">用「到 20 必須停」開短局</button>
-      <button class="btn" id="cNo">取消</button>
-    </div>`);
-  $("c10").onclick=()=>{$("goal").value="30";$("mustHold").value="10";closeCard();newGame();};
-  $("c20").onclick=()=>{$("goal").value="30";$("mustHold").value="20";closeCard();newGame();};
-  $("cNo").onclick=closeCard;
+$("rollBtn").onclick=doRoll;$("holdBtn").onclick=doHold;
+$("startBtn").onclick=startGame;
+$("newBtn").onclick=backToSetup;
+$("opp").onchange=syncOppPlans;
+$("applyCmp").onclick=()=>{
+  const a=parseIntIn("cmpA",1,200), b=parseIntIn("cmpB",1,200);
+  if(a===null||b===null||a===false||b===false){
+    $("setupErr").textContent="請先在「停手分數甲」「停手分數乙」各輸入一個 1 至 200 的整數（不要留空）。";
+    return;
+  }
+  document.querySelector('input[name="stop0"][value="plan"]').checked=true;
+  document.querySelector('input[name="stop1"][value="plan"]').checked=true;
+  $("stop0n").value=String(a);$("stop1n").value=String(b);
+  $("opp").value="friend";syncOppPlans();
+  startGame();
 };
+
 $("teacherBtn").onclick=()=>{
   openCard(`<div class="teacher"><h2>老師說明　第 6 節</h2>
   <h3>學習目標</h3>
-  <p>學生頁：『我能夠比較「再擲」和「停手把分數入袋」兩種選擇的得失，並根據本輪分數和紀錄，思考什麼時候該停。』</p>
+  <p>學生頁：『我能夠根據可能發生的結果比較風險和得益，判斷甚麼時候應該停。』</p>
   <h3>任務目的（學生頁）</h3>
-  <p>① 輪流擲骰子：可以再擲，或停手把本輪分數放入分數袋。<br>② 如果擲到 1，本輪分數會全部清掉。<br>③ 誰先到達目標分數（預設 50 分）就算完成。支援層本輪到 15 分就必須停。</p>
-  <ul><li>先玩，再談「為什麼有時該停」：再擲可能更高，也可能失去本輪分數。</li>
-  <li>用紀錄比較「常常再擲」和「到某個分數就停」，不教期望值公式。</li>
+  <p>① 開始前，和同學一起定下目標分數，也可以定下自己的停手分數。<br>② 輪流擲骰子：可以再擲，或停手把本輪分數放入分數袋。<br>③ 如果擲到 1，本輪分數會全部清掉。<br>④ 誰先到達目標分數就算完成。</p>
+  <ul><li>目標分數和停手分數由學生自己決定，畫面不會預先填好建議數字，也不會強迫停手。</li>
+  <li>先玩，再談「為什麼有時該停」：再擲可能更高，也可能失去本輪分數。</li>
+  <li>用紀錄比較不同停手打算（入袋幾分，或擲到 1 清零），不教期望值公式。</li>
   <li>課名只是趣味包裝：不用真錢、不兌換獎品、畫面避免賭場風格。</li></ul>
-  <h3>分層</h3>
-  <ul><li>支援：目標 50，到 15 必須停；優先同機雙人，或改用實體骰子。</li>
-  <li>基本：至少 1 局完整對打，有擲／停紀錄，能說出一個該考慮停的時刻。可選到 20 必須停。</li>
-  <li>挑戰：比較「10 分停」與「20 分停」各一短局；或討論自己快到目標時要不要更保守。</li></ul>
+  <h3>分層（不要用固定數字代學生決定）</h3>
+  <ul><li>支援：顯示本輪擲了幾次，並提示「骰子有 6 面，其中 1 面是 1」。學生仍須自己定目標和停手打算。</li>
+  <li>基本：一般對戰，沒有額外提示。</li>
+  <li>挑戰：學生自己輸入兩個停手分數來比較（不預填）。到達自己的停手分數時只提醒「已到你定的停手分數」，不強制停手。</li></ul>
+  <h3>背景知識（只給老師，不要在學生開始前揭示）</h3>
+  <p>常見數學討論會提到：若以期望值粗略估算，本輪累積到大約 20 分再考慮停，往往較為穩妥。這只是背景，不是要學生一開始就跟著做。電腦對手若被選用，會按內部規則決定是否停手，學生畫面不會寫出建議停手數字。</p>
   <p>電腦對手只是可選，不要強迫使用。實體骰子仍建議備着。</p>
   <div class="btn-row"><button class="btn" id="tClose">關閉</button></div></div>`);
   $("tClose").onclick=closeCard;
 };
-drawDie(null);setLevel("support");
+drawDie(null);setLevel("support");syncOppPlans();
 if(isTeacherMode()) $("teacherBtn").click();
+window._pig={state,startGame,backToSetup,validateSetup,doRoll,doHold,applyRoll,rollValue,nameOf,planText,
+  flush(){ if(state._tm){clearTimeout(state._tm); state._tm=null; nextPlayer();} }};
 </script>
 </body>
 </html>
